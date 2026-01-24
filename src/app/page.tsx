@@ -1,136 +1,101 @@
 "use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
-import { FileDropZone } from '@/components/anitch/FileDropZone';
-import { AnalysisPanel } from '@/components/anitch/AnalysisPanel';
-import { AppIcon } from '@/components/anitch/AppIcon';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { CameraView } from '@/components/anitch/CameraView';
+import { CoherenceMeter } from '@/components/anitch/CoherenceMeter';
+import { SceneObject } from '@/components/anitch/SceneObject';
+import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
+import PhysicalBuilder from '@/components/anitch/PhysicalBuilder';
+import { motion } from 'framer-motion';
+import { SlidersHorizontal } from 'lucide-react';
 
-type AppState = 'idle' | 'analyzing' | 'analyzed' | 'built';
+
+type SceneObjectType = {
+  id: string;
+  type: 'cube' | 'sphere' | 'pyramid';
+};
 
 export default function Home() {
-  const { toast } = useToast();
-  const [appState, setAppState] = useState<AppState>('idle');
-  const [files, setFiles] = useState<File[]>([]);
-  const [analysis, setAnalysis] = useState<AnalyzeProjectOutput | null>(null);
+  const [coherence, setCoherence] = useState(100);
+  const [sceneObjects, setSceneObjects] = useState<SceneObjectType[]>([]);
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  const [commandHistory, setCommandHistory] = useState<{ command: string; timestamp: number }[]>([]);
+  const [showBuilder, setShowBuilder] = useState(true);
+  const [showCLI, setShowCLI] = useState(true);
 
-  const handleFilesDropped = (acceptedFiles: File[]) => {
-    setFiles(acceptedFiles);
+  const handleCoherenceChange = (amount: number) => {
+    setCoherence(prev => Math.max(0, Math.min(100, prev + amount)));
   };
 
-  const handleAnalyze = async () => {
-    if (files.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'No files selected',
-        description: 'Please drop or select project files to analyze.',
-      });
-      return;
-    }
+  const handleCreateObject = useCallback((obj: { type: 'cube' | 'sphere' | 'pyramid', coherenceCost: number }) => {
+    if (coherence + obj.coherenceCost < 0) return;
+    
+    const newObject: SceneObjectType = {
+      id: `obj-${Date.now()}`,
+      type: obj.type,
+    };
+    setSceneObjects(prev => [...prev, newObject]);
+    handleCoherenceChange(obj.coherenceCost);
+  }, [coherence]);
 
-    setAppState('analyzing');
-
-    try {
-      const fileContents = await Promise.all(
-        files.map(file =>
-          new Promise<{ name: string; content: string }>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve({ name: file.name, content: reader.result as string });
-            reader.onerror = reject;
-            reader.readAsText(file);
-          })
-        )
-      );
-
-      const result = await analyzeProject({ files: fileContents });
-      setAnalysis(result);
-      setAppState('analyzed');
-      toast({
-        title: 'Analysis Complete',
-        description: 'The AI has generated a build plan for your project.',
-      });
-
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Analysis Failed',
-        description: 'Something went wrong during the analysis.',
-      });
-      setAppState('idle');
-    }
+  const handleExecuteCommand = (command: string) => {
+    setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
   };
-
-  const handleBuildComplete = () => {
-    setAppState('built');
-    toast({
-        title: "Build Successful!",
-        description: "Your application is ready."
-    });
-  };
-
-  const handleReset = () => {
-    setFiles([]);
-    setAnalysis(null);
-    setAppState('idle');
-  };
-  
-  const handleDownloadScript = () => {
-    if (!analysis) return;
-    const scriptContent = `#!/bin/bash\n# Build script for ${analysis.projectName}\n\n# Install dependencies\n${analysis.buildCommands.join('\n')}\n\n# Run application\n${analysis.runCommand}\n`;
-    const blob = new Blob([scriptContent], { type: 'text/shell-script' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'build.sh';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-background">
-      <main className="relative z-10 w-full h-screen flex flex-col items-center justify-center p-4">
-        <AnimatePresence mode="wait">
-          {appState === 'idle' && (
-            <FileDropZone
-              key="dropzone"
-              onFilesDropped={handleFilesDropped}
-              onAnalyze={handleAnalyze}
-              files={files}
-              isLoading={false}
+    <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
+      <CameraView />
+      <div className="absolute inset-0 bg-black/30" />
+      
+      <CoherenceMeter coherence={coherence} />
+      
+      <motion.div 
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-6 right-6 z-30 flex gap-2"
+      >
+        <button 
+          onClick={() => setShowBuilder(!showBuilder)} 
+          className="p-2 rounded-lg bg-[#1a1a3e]/80 backdrop-blur-md border border-[#00d9ff]/30 text-[#00d9ff] hover:bg-[#00d9ff]/20"
+        >
+          <SlidersHorizontal size={20} />
+        </button>
+      </motion.div>
+
+
+      <main className="relative z-10 w-full h-screen" onClick={(e) => {
+        if ((e.target as HTMLElement).tagName === 'MAIN') {
+          setSelectedObjectId(null)
+        }
+      }}>
+        <AnimatePresence>
+          {sceneObjects.map(obj => (
+            <SceneObject
+              key={obj.id}
+              id={obj.id}
+              type={obj.type}
+              isSelected={selectedObjectId === obj.id}
+              onSelect={setSelectedObjectId}
             />
-          )}
-          {appState === 'analyzing' && (
-             <FileDropZone
-              key="dropzone-loading"
-              onFilesDropped={handleFilesDropped}
-              onAnalyze={handleAnalyze}
-              files={files}
-              isLoading={true}
-            />
-          )}
-          {appState === 'analyzed' && analysis && (
-            <AnalysisPanel
-              key="analysis"
-              analysis={analysis}
-              onBuildComplete={handleBuildComplete}
-              onReset={handleReset}
-            />
-          )}
-           {appState === 'built' && analysis && (
-             <AppIcon 
-                key="app-icon"
-                projectName={analysis.projectName}
-                onIconClick={handleDownloadScript}
-             />
-           )}
+          ))}
         </AnimatePresence>
       </main>
+
+      <AnimatePresence>
+        {showBuilder && <PhysicalBuilder onCreateObject={handleCreateObject} />}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {showCLI && (
+            <CodeCommandInterface
+                onExecuteCommand={handleExecuteCommand}
+                commandHistory={commandHistory}
+                coherence={coherence}
+                onCoherenceChange={handleCoherenceChange}
+            />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
