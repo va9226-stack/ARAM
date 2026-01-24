@@ -26,6 +26,8 @@ const analyzeProjectPrompt = ai.definePrompt({
   output: {schema: AnalyzeProjectOutputSchema},
   prompt: `You are a build engineer expert. Your task is to analyze a set of project files and determine the best way to build and run the project.
 
+Your goal is to be efficient and insightful. Prioritize your analysis on manifest and configuration files (like package.json, requirements.txt, pyproject.toml, setup.py, Makefile, etc.). These files are the skeleton of the project. Use them to form your primary hypothesis about the build process. Treat other source files as secondary confirmation or for detail, especially if the total amount of code is very large.
+
 Analyze the following files:
 {{#each files}}
 File: {{{name}}}
