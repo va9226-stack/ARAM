@@ -119,7 +119,7 @@ export default function Home() {
         case 'analysis_complete':
             return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
         case 'build_complete':
-            return analysisResult ? <AppIcon projectName={analysisResult.projectName} onIconClick={resetState} /> : null;
+            return analysisResult ? <AppIcon analysis={analysisResult} onIconClick={resetState} /> : null;
         default:
             return null;
     }
@@ -127,7 +127,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] dark:bg-bottom dark:border-b dark:border-slate-100/5" style={{
+        maskImage: 'linear-gradient(to bottom, transparent, black, black, transparent)',
+        backgroundSize: '40px 40px',
+      }}></div>
       
       <CoherenceMeter coherence={coherence} />
       
