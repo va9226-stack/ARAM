@@ -4,14 +4,13 @@ import { useState, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import CodeBlock from '@/components/anitch/code-block';
 import { analyzeProject } from '@/ai/flows/analyze-project-flow';
 import type { AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
-import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages, Download, CheckCircle, CircleDashed, Loader } from 'lucide-react';
+import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Package, Languages, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { BuildVisualizer } from '@/components/anitch/BuildVisualizer';
+import { BuildPipeline } from '@/components/anitch/BuildPipeline';
 
 type FileData = {
   name: string;
@@ -39,14 +38,6 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const handleSimulateRun = useCallback(() => {
-    if (!analysis) return;
-    toast({
-      title: "Simulating Run Command",
-      description: `Executing: ${analysis.runCommand}`,
-    });
-  }, [analysis, toast]);
 
   const handleDownloadScript = useCallback(() => {
     if (!analysis) return;
@@ -172,29 +163,18 @@ echo "${analysis.runCommand}"
           />
         )}
         
-        {analysis.buildCommands.length > 0 && (
+        {(analysis.buildCommands.length > 0 || analysis.runCommand) && (
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Visualizer</p>
+              <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>AR Build Pipeline</p>
               <Button onClick={handleDownloadScript} size="sm" variant="outline">
                  <Download className="mr-2 h-4 w-4" />
                  Download Script
               </Button>
             </div>
-            <BuildVisualizer commands={analysis.buildCommands} />
+            <BuildPipeline commands={analysis.buildCommands} runCommand={analysis.runCommand} />
           </div>
         )}
-        
-        <div className="space-y-2">
-           <div className="flex justify-between items-center">
-             <p className="text-sm text-muted-foreground flex items-center"><Play className="h-5 w-5 mr-3 text-primary"/>Run Command</p>
-             <Button onClick={handleSimulateRun} size="sm" variant="outline">
-                <Play className="mr-2 h-4 w-4" />
-                Simulate
-             </Button>
-           </div>
-          <CodeBlock content={analysis.runCommand} language="bash" />
-        </div>
         
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground flex items-center"><Bot className="h-5 w-5 mr-3 text-primary"/>AI Summary</p>
@@ -211,7 +191,7 @@ echo "${analysis.runCommand}"
         </div>
       </div>
     );
-  }, [analysis, handleSimulateRun, handleDownloadScript]);
+  }, [analysis, handleDownloadScript]);
 
 
   return (
