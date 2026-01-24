@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { CameraView } from '@/components/anitch/CameraView';
 import { CoherenceMeter } from '@/components/anitch/CoherenceMeter';
 import { SceneObject } from '@/components/anitch/SceneObject';
 import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
@@ -45,7 +44,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
-      <CameraView />
       <div className="absolute inset-0 bg-black/30" />
       
       <CoherenceMeter coherence={coherence} />
