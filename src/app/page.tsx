@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import type { AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 type FileData = {
   name: string;
@@ -19,7 +20,7 @@ type FileData = {
 const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | React.ReactNode }) => (
   <div className="flex items-start space-x-3">
     <div className="flex-shrink-0">
-      <Icon className="h-5 w-5 text-accent" />
+      <Icon className="h-5 w-5 text-primary" />
     </div>
     <div>
       <p className="text-sm text-muted-foreground">{label}</p>
@@ -37,6 +38,14 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const handleSimulateRun = useCallback(() => {
+    if (!analysis) return;
+    toast({
+      title: "Simulating Run Command",
+      description: `Executing: ${analysis.runCommand}`,
+    });
+  }, [analysis, toast]);
 
   const readFileAsText = (file: File): Promise<FileData> => {
     return new Promise((resolve, reject) => {
@@ -132,23 +141,40 @@ export default function Home() {
           />
         )}
         
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-accent"/>Build Commands</p>
-          <CodeBlock content={analysis.buildCommands.join('\n')} language="bash" />
-        </div>
+        {analysis.buildCommands.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Commands</p>
+            <CodeBlock content={analysis.buildCommands.join('\n')} language="bash" />
+          </div>
+        )}
         
         <div className="space-y-2">
-           <p className="text-sm text-muted-foreground flex items-center"><Play className="h-5 w-5 mr-3 text-accent"/>Run Command</p>
+           <div className="flex justify-between items-center">
+             <p className="text-sm text-muted-foreground flex items-center"><Play className="h-5 w-5 mr-3 text-primary"/>Run Command</p>
+             <Button onClick={handleSimulateRun} size="sm" variant="outline">
+                <Play className="mr-2 h-4 w-4" />
+                Simulate
+             </Button>
+           </div>
           <CodeBlock content={analysis.runCommand} language="bash" />
         </div>
         
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground flex items-center"><Bot className="h-5 w-5 mr-3 text-accent"/>Summary</p>
-          <p className="text-sm text-foreground bg-secondary/50 p-3 rounded-md border">{analysis.analysisSummary}</p>
+        <div className="space-y-4">
+            <p className="text-sm text-muted-foreground flex items-center"><Bot className="h-5 w-5 mr-3 text-primary"/>AI Summary</p>
+            <div className="flex items-start gap-3">
+                <Avatar className="h-8 w-8 border bg-background">
+                    <AvatarFallback>
+                        <Bot className="h-4 w-4" />
+                    </AvatarFallback>
+                </Avatar>
+                <div className="bg-secondary/50 p-3 rounded-lg border rounded-tl-none text-sm text-foreground">
+                    {analysis.analysisSummary}
+                </div>
+            </div>
         </div>
       </div>
     );
-  }, [analysis]);
+  }, [analysis, handleSimulateRun]);
 
 
   return (

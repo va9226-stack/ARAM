@@ -36,7 +36,7 @@ export default function CodeBlock({ content, language }: CodeBlockProps) {
 
   return (
     <div className="relative group">
-      <ScrollArea className="h-72 w-full">
+      <ScrollArea className="max-h-72 w-full">
         <pre className="p-4 bg-secondary rounded-md border text-sm text-gray-300 overflow-x-auto">
           <code className={`language-${language} font-code`}>{content}</code>
         </pre>
