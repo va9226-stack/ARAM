@@ -167,7 +167,8 @@ export default function Home() {
           {showAppIcon && analysis && (
             <AppIcon 
               projectName={analysis.projectName} 
-              onDrop={handleDownloadScript}
+              onIconClick={handleDownloadScript}
+              icon="🚀"
             />
           )}
         </AnimatePresence>
