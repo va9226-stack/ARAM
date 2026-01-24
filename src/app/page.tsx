@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import CodeBlock from '@/components/anitch/code-block';
 import { analyzeProject } from '@/ai/flows/analyze-project-flow';
 import type { AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
-import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages, Download } from 'lucide-react';
+import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages, Download, CheckCircle, CircleDashed, Loader } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { BuildVisualizer } from '@/components/anitch/BuildVisualizer';
 
 type FileData = {
   name: string;
@@ -173,14 +174,14 @@ echo "${analysis.runCommand}"
         
         {analysis.buildCommands.length > 0 && (
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Commands</p>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Visualizer</p>
               <Button onClick={handleDownloadScript} size="sm" variant="outline">
                  <Download className="mr-2 h-4 w-4" />
                  Download Script
               </Button>
             </div>
-            <CodeBlock content={analysis.buildCommands.join('\n')} language="bash" />
+            <BuildVisualizer commands={analysis.buildCommands} />
           </div>
         )}
         
