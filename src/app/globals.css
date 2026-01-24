@@ -87,3 +87,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .holographic-text {
+        text-shadow: 0 0 5px #d4af37, 0 0 10px #d4af37, 0 0 15px #d4af37;
+    }
+}
