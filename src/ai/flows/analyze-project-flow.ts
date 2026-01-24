@@ -46,7 +46,7 @@ Based on the files provided:
 7.  Write a short summary explaining your analysis and the steps.
 
 If a known build file like 'setup.py' (for py2app), 'package.json' (with scripts), or a 'Makefile' is present, prioritize its instructions for the build commands.
-For Python projects, assume a virtual environment is NOT needed. Installation should be global.
+For Python projects, your top priority is to provide commands that do not require administrative ('sudo') privileges. Therefore, you must always recommend creating and using a virtual environment (e.g., with 'python -m venv venv'). The build commands should include creating the virtual environment, activating it, and then installing dependencies inside it.
 For Node.js projects, prefer 'npm' unless 'yarn.lock' is present.
 The final output should be a JSON object matching the provided schema.`,
 });
