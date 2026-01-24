@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import CodeBlock from '@/components/anitch/code-block';
 import { analyzeProject } from '@/ai/flows/analyze-project-flow';
 import type { AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
-import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages } from 'lucide-react';
+import { UploadCloud, File, BrainCircuit, Bot, Wand2, Hammer, Terminal, Play, Package, Languages, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -44,6 +44,36 @@ export default function Home() {
     toast({
       title: "Simulating Run Command",
       description: `Executing: ${analysis.runCommand}`,
+    });
+  }, [analysis, toast]);
+
+  const handleDownloadScript = useCallback(() => {
+    if (!analysis) return;
+
+    const scriptContent = `#!/bin/bash
+# AI-generated build script for ${analysis.projectName}
+
+echo "--- Installing Dependencies and Building Project ---"
+${analysis.buildCommands.join('\n')}
+
+echo "\\n--- Build Complete ---"
+echo "To run the application, execute the following command:"
+echo "${analysis.runCommand}"
+`;
+
+    const blob = new Blob([scriptContent], { type: 'text/x-shellscript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'build.sh';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+        title: "Script Downloaded",
+        description: "build.sh has been downloaded successfully.",
     });
   }, [analysis, toast]);
 
@@ -143,7 +173,13 @@ export default function Home() {
         
         {analysis.buildCommands.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Commands</p>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground flex items-center"><Terminal className="h-5 w-5 mr-3 text-primary"/>Build Commands</p>
+              <Button onClick={handleDownloadScript} size="sm" variant="outline">
+                 <Download className="mr-2 h-4 w-4" />
+                 Download Script
+              </Button>
+            </div>
             <CodeBlock content={analysis.buildCommands.join('\n')} language="bash" />
           </div>
         )}
@@ -174,7 +210,7 @@ export default function Home() {
         </div>
       </div>
     );
-  }, [analysis, handleSimulateRun]);
+  }, [analysis, handleSimulateRun, handleDownloadScript]);
 
 
   return (
