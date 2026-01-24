@@ -28,7 +28,7 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --success: 210 80% 65%;
+    --success: 142.1 76.2% 36.3%;
     --warning: 45 90% 60%;
     --info: 210 80% 65%;
 
@@ -69,7 +69,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --success: 210 80% 65%;
+    --success: 142.1 70.6% 45.3%;
     --warning: 45 90% 60%;
     --info: 210 80% 65%;
  
@@ -86,10 +86,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-@layer components {
-    .holographic-text {
-        text-shadow: 0 0 5px #d4af37, 0 0 10px #d4af37, 0 0 15px #d4af37;
-    }
 }

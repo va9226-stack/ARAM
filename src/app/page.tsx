@@ -1,124 +1,135 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Video } from 'lucide-react';
+import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { FileDropZone } from '@/components/anitch/FileDropZone';
+import { AnalysisPanel } from '@/components/anitch/AnalysisPanel';
+import { AppIcon } from '@/components/anitch/AppIcon';
 import { useToast } from '@/hooks/use-toast';
 
-import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
-import PhysicalBuilder from '@/components/anitch/PhysicalBuilder';
-import { SceneObject } from '@/components/anitch/SceneObject';
-import { CoherenceMeter } from '@/components/anitch/CoherenceMeter';
+type AppState = 'idle' | 'analyzing' | 'analyzed' | 'built';
 
 export default function Home() {
   const { toast } = useToast();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [hasCameraPermission, setHasCameraPermission] = useState(true);
+  const [appState, setAppState] = useState<AppState>('idle');
+  const [files, setFiles] = useState<File[]>([]);
+  const [analysis, setAnalysis] = useState<AnalyzeProjectOutput | null>(null);
 
-  // State for the new interface
-  const [coherence, setCoherence] = useState(100);
-  const [commandHistory, setCommandHistory] = useState<{command: string, timestamp: number}[]>([]);
-  const [sceneObjects, setSceneObjects] = useState<{id: string, type: string}[]>([]);
-  const [selectedObject, setSelectedObject] = useState<string | null>(null);
-
-  useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        setHasCameraPermission(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions to use the AR experience.',
-        });
-      }
-    };
-    getCameraPermission();
-  }, [toast]);
-
-  const handleCoherenceChange = (amount: number) => {
-    setCoherence(prev => Math.max(0, Math.min(100, prev + amount)));
+  const handleFilesDropped = (acceptedFiles: File[]) => {
+    setFiles(acceptedFiles);
   };
 
-  const handleExecuteCommand = (command: string) => {
-    setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
-  };
-
-  const handleCreateObject = (object: { type: string, coherenceCost: number }) => {
-    if (coherence + object.coherenceCost < 0) {
+  const handleAnalyze = async () => {
+    if (files.length === 0) {
       toast({
-        variant: "destructive",
-        title: "Insufficient Coherence",
-        description: "Cannot manifest object.",
+        variant: 'destructive',
+        title: 'No files selected',
+        description: 'Please drop or select project files to analyze.',
       });
       return;
     }
-    const newObject = {
-      id: `obj_${Date.now()}`,
-      type: object.type,
-    };
-    setSceneObjects(prev => [...prev, newObject]);
-    handleCoherenceChange(object.coherenceCost);
+
+    setAppState('analyzing');
+
+    try {
+      const fileContents = await Promise.all(
+        files.map(file =>
+          new Promise<{ name: string; content: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ name: file.name, content: reader.result as string });
+            reader.onerror = reject;
+            reader.readAsText(file);
+          })
+        )
+      );
+
+      const result = await analyzeProject({ files: fileContents });
+      setAnalysis(result);
+      setAppState('analyzed');
+      toast({
+        title: 'Analysis Complete',
+        description: 'The AI has generated a build plan for your project.',
+      });
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: 'Something went wrong during the analysis.',
+      });
+      setAppState('idle');
+    }
+  };
+
+  const handleBuildComplete = () => {
+    setAppState('built');
     toast({
-        title: "Object Manifested",
-        description: `${object.type} created in the scene.`
-    })
+        title: "Build Successful!",
+        description: "Your application is ready."
+    });
+  };
+
+  const handleReset = () => {
+    setFiles([]);
+    setAnalysis(null);
+    setAppState('idle');
   };
   
-  const handleObjectSelection = (id: string | null) => {
-    setSelectedObject(id);
-  }
+  const handleDownloadScript = () => {
+    if (!analysis) return;
+    const scriptContent = `#!/bin/bash\n# Build script for ${analysis.projectName}\n\n# Install dependencies\n${analysis.buildCommands.join('\n')}\n\n# Run application\n${analysis.runCommand}\n`;
+    const blob = new Blob([scriptContent], { type: 'text/shell-script' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'build.sh';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-black font-mono" onClick={(e) => {
-        // Deselect if clicking on the background
-        if (e.target === e.currentTarget) {
-            handleObjectSelection(null);
-        }
-    }}>
-      <video ref={videoRef} className="absolute top-0 left-0 w-full h-full object-cover z-0" autoPlay muted playsInline />
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/60 via-transparent to-black/80 z-10" />
-
-      <main className="relative z-20 w-full h-screen">
-        <AnimatePresence>
-            {sceneObjects.map(obj => (
-                <SceneObject 
-                    key={obj.id} 
-                    id={obj.id}
-                    type={obj.type} 
-                    isSelected={selectedObject === obj.id}
-                    onSelect={handleObjectSelection}
-                />
-            ))}
+    <div className="min-h-screen w-full relative overflow-hidden bg-background">
+      <main className="relative z-10 w-full h-screen flex flex-col items-center justify-center p-4">
+        <AnimatePresence mode="wait">
+          {appState === 'idle' && (
+            <FileDropZone
+              key="dropzone"
+              onFilesDropped={handleFilesDropped}
+              onAnalyze={handleAnalyze}
+              files={files}
+              isLoading={false}
+            />
+          )}
+          {appState === 'analyzing' && (
+             <FileDropZone
+              key="dropzone-loading"
+              onFilesDropped={handleFilesDropped}
+              onAnalyze={handleAnalyze}
+              files={files}
+              isLoading={true}
+            />
+          )}
+          {appState === 'analyzed' && analysis && (
+            <AnalysisPanel
+              key="analysis"
+              analysis={analysis}
+              onBuildComplete={handleBuildComplete}
+              onReset={handleReset}
+            />
+          )}
+           {appState === 'built' && analysis && (
+             <AppIcon 
+                key="app-icon"
+                projectName={analysis.projectName}
+                onIconClick={handleDownloadScript}
+             />
+           )}
         </AnimatePresence>
-        
-        {hasCameraPermission && (
-            <>
-                <CoherenceMeter coherence={coherence} />
-                <PhysicalBuilder onCreateObject={handleCreateObject} />
-                <CodeCommandInterface 
-                    onExecuteCommand={handleExecuteCommand}
-                    commandHistory={commandHistory}
-                    coherence={coherence}
-                    onCoherenceChange={handleCoherenceChange}
-                />
-            </>
-        )}
-
-        {!hasCameraPermission && (
-             <div className="w-full h-full flex items-center justify-center">
-                <div className="max-w-md bg-destructive/50 backdrop-blur-lg border border-destructive text-destructive-foreground p-6 rounded-lg">
-                    <h2 className="text-xl font-bold flex items-center gap-2"><Video /> Camera Access Denied</h2>
-                    <p className="text-destructive-foreground/80 mt-2">Please enable camera permissions in your browser settings to use the AR experience.</p>
-                </div>
-            </div>
-        )}
       </main>
     </div>
   );

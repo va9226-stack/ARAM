@@ -9,11 +9,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 type Status = 'pending' | 'running' | 'completed';
 type Stage = 'Setup' | 'Dependencies' | 'Build' | 'Run';
 
-interface ParsedCommand {
-    command: string;
-    stage: Stage;
-}
-
 const STAGE_CONFIG: Record<Stage, { icon: React.ElementType, title: string }> = {
     'Setup': { icon: Wrench, title: 'Setup' },
     'Dependencies': { icon: Package, title: 'Dependencies' },
@@ -31,23 +26,23 @@ const getStageForCommand = (command: string): Stage => {
 
 const PipelineStage = ({ title, icon: Icon, commands, status }: { title: string, icon: React.ElementType, commands: string[], status: Status }) => {
     const statusIcons: Record<Status, React.ReactNode> = {
-        pending: <CircleDashed className="h-5 w-5 text-white/50" />,
+        pending: <CircleDashed className="h-5 w-5 text-muted-foreground" />,
         running: <Loader className="h-5 w-5 text-primary animate-spin" />,
         completed: <CheckCircle className="h-5 w-5 text-success" />,
     };
 
     return (
         <Card className={cn(
-            "w-64 flex-shrink-0 transition-all duration-300 border-white/20 text-white",
-            status === 'pending' && 'bg-black/20 backdrop-blur-lg border-dashed',
-            status === 'running' && 'bg-primary/20 backdrop-blur-lg border-primary shadow-lg scale-105',
-            status === 'completed' && 'bg-black/40 backdrop-blur-lg'
+            "w-64 flex-shrink-0 transition-all duration-300",
+            status === 'pending' && 'bg-muted/50 border-dashed',
+            status === 'running' && 'bg-accent border-primary shadow-lg scale-105',
+            status === 'completed' && 'bg-muted'
         )}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Icon className={cn(
                         "h-4 w-4",
-                        status === 'running' ? 'text-primary' : 'text-white/70'
+                        status === 'running' ? 'text-primary' : 'text-muted-foreground'
                     )} />
                     {title}
                 </CardTitle>
@@ -59,7 +54,7 @@ const PipelineStage = ({ title, icon: Icon, commands, status }: { title: string,
                         <div className="space-y-1 pr-4">
                             {commands.map((cmd, i) => (
                                 <code key={i} className={cn(
-                                    "text-xs font-mono block truncate p-1 rounded text-white/80"
+                                    "text-xs font-mono block truncate p-1 rounded bg-black/10 dark:bg-black/20 text-muted-foreground"
                                 )}>
                                     {cmd}
                                 </code>
@@ -68,7 +63,7 @@ const PipelineStage = ({ title, icon: Icon, commands, status }: { title: string,
                     </ScrollArea>
                 ) : (
                     <div className="h-24 flex items-center justify-center">
-                         <p className="text-xs text-white/50">No commands for this stage.</p>
+                         <p className="text-xs text-muted-foreground">No commands for this stage.</p>
                     </div>
                 )}
             </CardContent>
@@ -88,13 +83,11 @@ export const BuildPipeline = ({ commands, runCommand, onBuildComplete }: { comma
             'Run': [],
         };
         
-        // Group build commands
         commands.forEach(cmd => {
             const stage = getStageForCommand(cmd);
             stageMap[stage].push(cmd);
         });
 
-        // Add the run command to its stage
         if (runCommand) {
             stageMap['Run'].push(runCommand);
         }
@@ -130,8 +123,8 @@ export const BuildPipeline = ({ commands, runCommand, onBuildComplete }: { comma
 
     if (pipelineStages.length === 0) {
         return (
-             <div className="p-3 bg-black/20 backdrop-blur-lg rounded-lg border border-white/20 flex items-center justify-center min-h-[168px]">
-                <p className="text-sm text-white/70">No build steps were identified.</p>
+             <div className="p-3 bg-muted rounded-lg border flex items-center justify-center min-h-[168px]">
+                <p className="text-sm text-muted-foreground">No build steps were identified.</p>
             </div>
         );
     }
@@ -157,7 +150,7 @@ export const BuildPipeline = ({ commands, runCommand, onBuildComplete }: { comma
                         />
                         {index < pipelineStages.length - 1 && (
                             <ChevronRight className={cn(
-                                "h-8 w-8 text-white/20 transition-colors",
+                                "h-8 w-8 text-border transition-colors",
                                 status === 'completed' && "text-success"
                             )} />
                         )}

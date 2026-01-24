@@ -2,25 +2,27 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Bot, Cpu, Code, Layers, FileText, Download, ArrowLeft } from 'lucide-react';
+import { Bot, Cpu, Layers, ArrowLeft } from 'lucide-react';
 import { type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
 import { BuildPipeline } from '@/components/anitch/BuildPipeline';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export const AnalysisPanel = ({ analysis, onBuildComplete, onReset }: { analysis: AnalyzeProjectOutput, onBuildComplete: () => void, onReset: () => void }) => {
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: {
         staggerChildren: 0.1,
       },
     },
     exit: {
         opacity: 0,
+        y: -20,
     }
   };
 
@@ -38,31 +40,33 @@ export const AnalysisPanel = ({ analysis, onBuildComplete, onReset }: { analysis
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="w-full max-w-4xl p-4 md:p-6"
+      className="w-full max-w-4xl"
     >
-        <Card className="bg-black/40 backdrop-blur-xl border-white/20 text-white w-full">
+        <Card className="w-full">
             <CardHeader>
                 <div className="flex justify-between items-start">
                     <div>
-                        <motion.div variants={itemVariants} className="flex items-center gap-2">
-                             <Button variant="ghost" size="icon" className="text-white/70 hover:bg-white/10" onClick={onReset}>
+                        <motion.div variants={itemVariants} className="flex items-center gap-3">
+                             <Button variant="ghost" size="icon" className="text-muted-foreground" onClick={onReset}>
                                 <ArrowLeft />
                              </Button>
-                            <CardTitle className="text-2xl md:text-3xl font-bold holographic-text">
-                                {analysis.projectName}
-                            </CardTitle>
+                             <div>
+                                <CardTitle className="text-2xl md:text-3xl font-bold">
+                                    {analysis.projectName}
+                                </CardTitle>
+                                <CardDescription className="mt-1">Analysis complete. Build pipeline is ready.</CardDescription>
+                             </div>
                         </motion.div>
-                        <motion.p variants={itemVariants} className="text-white/70 mt-2">Analysis complete. Build pipeline is ready.</motion.p>
                     </div>
                     <motion.div variants={itemVariants}>
-                        <Badge variant="outline" className="border-primary text-primary">{analysis.language}</Badge>
+                        <Badge variant="secondary">{analysis.language}</Badge>
                     </motion.div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 <motion.div variants={itemVariants}>
                     <h3 className="flex items-center gap-2 text-lg font-semibold mb-3"><Bot size={20} /> AI Summary</h3>
-                    <div className="p-4 rounded-lg bg-black/30 border border-white/10 text-white/80 text-sm">
+                    <div className="p-4 rounded-lg bg-muted/50 border text-sm">
                         <p>{analysis.analysisSummary}</p>
                     </div>
                 </motion.div>
@@ -81,7 +85,7 @@ export const AnalysisPanel = ({ analysis, onBuildComplete, onReset }: { analysis
                     <div className="flex flex-wrap gap-2">
                         {analysis.dependencies.length > 0 ? analysis.dependencies.map(dep => (
                             <Badge key={dep} variant="secondary">{dep}</Badge>
-                        )) : <p className="text-sm text-white/60">No key dependencies identified.</p>}
+                        )) : <p className="text-sm text-muted-foreground">No key dependencies identified.</p>}
                     </div>
                 </motion.div>
             </CardContent>
