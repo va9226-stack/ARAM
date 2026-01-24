@@ -12,6 +12,7 @@ import { AppIcon } from '@/components/anitch/AppIcon';
 import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from 'lucide-react';
+import MeditationMode from '@/components/anitch/MeditationMode';
 
 
 type SceneObjectType = {
@@ -19,7 +20,7 @@ type SceneObjectType = {
   type: 'cube' | 'sphere' | 'pyramid' | 'app';
 };
 
-type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete';
+type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating';
 
 
 export default function Home() {
@@ -34,14 +35,18 @@ export default function Home() {
   const [analysisResult, setAnalysisResult] = useState<AnalyzeProjectOutput | null>(null);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
-  const handleCoherenceChange = (amount: number) => {
+  const handleCoherenceChange = useCallback((amount: number) => {
     setCoherence(prev => Math.max(0, Math.min(100, prev + amount)));
-  };
+  }, []);
 
   const handleExecuteCommand = (command: string) => {
     setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
     
-    // This is where we bridge the two concepts
+    if (/meditate|focus|restore/i.test(command)) {
+      setAppState('meditating');
+      return;
+    }
+
     if (/analyze|build|construct/i.test(command)) {
         if (appState !== 'idle') return;
         handleCoherenceChange(-10);
@@ -103,6 +108,10 @@ export default function Home() {
     setAnalysisResult(null);
     setDroppedFiles([]);
   };
+
+  const handleExitMeditation = () => {
+    setAppState('idle');
+  };
   
   const CurrentView = useMemo(() => {
     switch (appState) {
@@ -120,10 +129,16 @@ export default function Home() {
             return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
         case 'build_complete':
             return analysisResult ? <AppIcon analysis={analysisResult} onIconClick={resetState} /> : null;
+        case 'meditating':
+            return (
+                <div className="w-full h-full cursor-pointer" onClick={handleExitMeditation} title="Click anywhere to exit meditation">
+                    <MeditationMode coherence={coherence} onCoherenceChange={handleCoherenceChange} />
+                </div>
+            )
         default:
             return null;
     }
-  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete]);
+  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange]);
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">

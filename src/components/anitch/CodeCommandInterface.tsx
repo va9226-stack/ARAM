@@ -25,6 +25,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
     // Command patterns
     const patterns = {
       analyze: /analyze|build|construct/i,
+      meditate: /meditate|focus|restore/i,
       manifest: /manifest (a |an )?(.*)/i,
       reshape: /reshape (.*) to (.*)/i,
       create: /create (.*)/i,
@@ -48,7 +49,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
 
   const handleExecute = useCallback(() => {
     if (!input.trim()) return;
-    if (coherence < 10 && !input.match(/analyze|build|construct/i)) {
+    if (coherence < 10 && !input.match(/analyze|build|construct|meditate|focus|restore/i)) {
       toast({
         title: "Insufficient Coherence",
         description: "Need at least 10% coherence to execute commands",
@@ -64,7 +65,17 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
 
     // Mock execution time for feedback
     setTimeout(() => {
-      if (parsed.type !== 'analyze') {
+      if (parsed.type === 'analyze') {
+          toast({
+              title: "Analysis Protocol Initiated",
+              description: "Awaiting project file submission."
+          })
+      } else if (parsed.type === 'meditate') {
+          toast({
+              title: "Entering Meditation",
+              description: "Focusing energy to restore coherence."
+          });
+      } else {
           if (parsed.success) {
             toast({
               title: "Command Executed",
@@ -78,11 +89,6 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
             });
             onCoherenceChange(5); // Refund some coherence on failure
           }
-      } else {
-          toast({
-              title: "Analysis Protocol Initiated",
-              description: "Awaiting project file submission."
-          })
       }
       
       setInput('');
@@ -215,7 +221,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
             {[
                 'analyze project',
                 'manifest a crystalline tower',
-                'reshape terrain to rolling hills',
+                'meditate',
             ].map((cmd, idx) => (
               <motion.button
                 key={idx}
