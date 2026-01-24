@@ -1,46 +1,129 @@
+
 "use client";
 
-import { useState, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useMemo } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { CoherenceMeter } from '@/components/anitch/CoherenceMeter';
 import { SceneObject } from '@/components/anitch/SceneObject';
 import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
-import PhysicalBuilder from '@/components/anitch/PhysicalBuilder';
-import { motion } from 'framer-motion';
-import { SlidersHorizontal } from 'lucide-react';
+import { HolographicFileDrop } from '@/components/anitch/HolographicFileDrop';
+import { AnalysisPanel } from '@/components/anitch/AnalysisPanel';
+import { AppIcon } from '@/components/anitch/AppIcon';
+import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { useToast } from '@/hooks/use-toast';
+import { Loader } from 'lucide-react';
 
 
 type SceneObjectType = {
   id: string;
-  type: 'cube' | 'sphere' | 'pyramid';
+  type: 'cube' | 'sphere' | 'pyramid' | 'app';
 };
 
+type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete';
+
+
 export default function Home() {
+  const { toast } = useToast();
+  const [appState, setAppState] = useState<AppState>('idle');
+
   const [coherence, setCoherence] = useState(100);
   const [sceneObjects, setSceneObjects] = useState<SceneObjectType[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [commandHistory, setCommandHistory] = useState<{ command: string; timestamp: number }[]>([]);
-  const [showBuilder, setShowBuilder] = useState(true);
-  const [showCLI, setShowCLI] = useState(true);
+
+  const [analysisResult, setAnalysisResult] = useState<AnalyzeProjectOutput | null>(null);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
   const handleCoherenceChange = (amount: number) => {
     setCoherence(prev => Math.max(0, Math.min(100, prev + amount)));
   };
 
-  const handleCreateObject = useCallback((obj: { type: 'cube' | 'sphere' | 'pyramid', coherenceCost: number }) => {
-    if (coherence + obj.coherenceCost < 0) return;
-    
-    const newObject: SceneObjectType = {
-      id: `obj-${Date.now()}`,
-      type: obj.type,
-    };
-    setSceneObjects(prev => [...prev, newObject]);
-    handleCoherenceChange(obj.coherenceCost);
-  }, [coherence]);
-
   const handleExecuteCommand = (command: string) => {
     setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
+    
+    // This is where we bridge the two concepts
+    if (/analyze|build|construct/i.test(command)) {
+        if (appState !== 'idle') return;
+        handleCoherenceChange(-10);
+        setAppState('awaiting_files');
+    } else {
+        handleCoherenceChange(-5);
+    }
   };
+
+  const handleFilesDropped = useCallback((files: File[]) => {
+    setDroppedFiles(files);
+    setAppState('analyzing');
+
+    const readFiles = async () => {
+        const fileContents = await Promise.all(
+          files.map(file => new Promise<{ name: string; content: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ name: file.name, content: reader.result as string });
+            reader.onerror = reject;
+            reader.readAsText(file);
+          }))
+        );
+        return fileContents;
+    };
+
+    readFiles().then(files => {
+        analyzeProject({ files }).then(result => {
+            setAnalysisResult(result);
+            setAppState('analysis_complete');
+            handleCoherenceChange(-20);
+        }).catch(err => {
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Failed',
+                description: 'The AI core could not process the project files.',
+            });
+            console.error(err);
+            resetState();
+        });
+    }).catch(err => {
+        toast({
+            variant: 'destructive',
+            title: 'File Read Error',
+            description: 'Could not read the dropped files.',
+        });
+        console.error(err);
+        resetState();
+    });
+  }, [toast]);
+
+
+  const handleBuildComplete = useCallback(() => {
+    setAppState('build_complete');
+    handleCoherenceChange(-30);
+  }, []);
+
+  const resetState = () => {
+    setAppState('idle');
+    setAnalysisResult(null);
+    setDroppedFiles([]);
+  };
+  
+  const CurrentView = useMemo(() => {
+    switch (appState) {
+        case 'awaiting_files':
+            return <HolographicFileDrop onFilesDropped={handleFilesDropped} onCancel={resetState} />;
+        case 'analyzing':
+             return (
+                <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="flex flex-col items-center gap-4 text-center">
+                    <Loader className="w-16 h-16 animate-spin text-primary" />
+                    <h2 className="text-2xl font-bold holographic-text">AI Core is Analyzing...</h2>
+                    <p className="text-muted-foreground">Reading project architecture and dependencies.</p>
+                </motion.div>
+             );
+        case 'analysis_complete':
+            return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
+        case 'build_complete':
+            return analysisResult ? <AppIcon projectName={analysisResult.projectName} onIconClick={resetState} /> : null;
+        default:
+            return null;
+    }
+  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete]);
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
@@ -48,21 +131,7 @@ export default function Home() {
       
       <CoherenceMeter coherence={coherence} />
       
-      <motion.div 
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-6 right-6 z-30 flex gap-2"
-      >
-        <button 
-          onClick={() => setShowBuilder(!showBuilder)} 
-          className="p-2 rounded-lg bg-[#1a1a3e]/80 backdrop-blur-md border border-[#00d9ff]/30 text-[#00d9ff] hover:bg-[#00d9ff]/20"
-        >
-          <SlidersHorizontal size={20} />
-        </button>
-      </motion.div>
-
-
-      <main className="relative z-10 w-full h-screen" onClick={(e) => {
+      <main className="relative z-10 w-full h-screen flex items-center justify-center" onClick={(e) => {
         if ((e.target as HTMLElement).tagName === 'MAIN') {
           setSelectedObjectId(null)
         }
@@ -78,14 +147,14 @@ export default function Home() {
             />
           ))}
         </AnimatePresence>
+        
+        <AnimatePresence mode="wait">
+            {CurrentView}
+        </AnimatePresence>
       </main>
-
-      <AnimatePresence>
-        {showBuilder && <PhysicalBuilder onCreateObject={handleCreateObject} />}
-      </AnimatePresence>
       
       <AnimatePresence>
-        {showCLI && (
+        {appState === 'idle' && (
             <CodeCommandInterface
                 onExecuteCommand={handleExecuteCommand}
                 commandHistory={commandHistory}

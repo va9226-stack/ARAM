@@ -1,8 +1,9 @@
+
 "use client";
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Box, Circle, Triangle } from 'lucide-react';
+import { Box, Circle, Triangle, Rocket } from 'lucide-react';
 
 const springConfig = { type: "spring", stiffness: 300, damping: 30 };
 
@@ -10,10 +11,13 @@ const shapeComponents = {
   cube: Box,
   sphere: Circle,
   pyramid: Triangle,
+  app: Rocket,
 };
 
 export const SceneObject = ({ id, type, onSelect, isSelected }) => {
   const Icon = shapeComponents[type] || Box;
+
+  const isApp = type === 'app';
 
   return (
     <motion.div
@@ -30,13 +34,15 @@ export const SceneObject = ({ id, type, onSelect, isSelected }) => {
       className={`absolute cursor-grab active:cursor-grabbing w-24 h-24 p-4 rounded-lg flex items-center justify-center transition-colors ${
         isSelected
           ? 'bg-[#d4af37]/30 border-2 border-[#d4af37]'
+          : isApp
+          ? 'bg-primary/20 border-primary'
           : 'bg-[#1a1a3e]/80 backdrop-blur-sm border border-[#00d9ff]/30'
       }`}
       style={{
-        boxShadow: isSelected ? '0 0 20px rgba(212, 175, 55, 0.5)' : '0 0 10px rgba(0, 217, 255, 0.2)',
+        boxShadow: isSelected ? '0 0 20px rgba(212, 175, 55, 0.5)' : isApp ? '0 0 20px rgba(91, 155, 240, 0.5)' : '0 0 10px rgba(0, 217, 255, 0.2)',
       }}
     >
-      <Icon className={`w-full h-full transition-colors ${isSelected ? 'text-[#d4af37]' : 'text-[#00d9ff]'}`} strokeWidth={1} />
+      <Icon className={`w-full h-full transition-colors ${isSelected ? 'text-[#d4af37]' : isApp ? 'text-primary' : 'text-[#00d9ff]'}`} strokeWidth={1} />
     </motion.div>
   );
 };

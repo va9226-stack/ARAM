@@ -1,7 +1,8 @@
+
 "use client";
 
 import { motion } from 'framer-motion';
-import { Package } from 'lucide-react';
+import { Rocket } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function AppIcon({ projectName, onIconClick }: { projectName: string; onIconClick: () => void; }) {
@@ -16,16 +17,19 @@ export function AppIcon({ projectName, onIconClick }: { projectName: string; onI
             onClick={onIconClick}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex cursor-pointer flex-col items-center gap-2"
+            className="flex cursor-pointer flex-col items-center gap-4 p-8 rounded-2xl bg-card/50 border border-primary/30"
           >
-            <div className="flex h-28 w-28 items-center justify-center rounded-2xl border bg-card shadow-md">
-              <Package className="h-16 w-16 text-primary" />
+            <div className="flex h-32 w-32 items-center justify-center rounded-2xl border-2 border-primary bg-card shadow-lg shadow-primary/20">
+              <Rocket className="h-20 w-20 text-primary" />
             </div>
-            <p className="text-sm font-medium text-foreground">{projectName}</p>
+            <div className="text-center">
+                <p className="text-xl font-bold text-foreground">{projectName}</p>
+                <p className="text-sm text-muted-foreground">Build Complete</p>
+            </div>
           </motion.div>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p>Click to download the build script!</p>
+          <p>Click to reset simulation</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

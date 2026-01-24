@@ -24,6 +24,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
     
     // Command patterns
     const patterns = {
+      analyze: /analyze|build|construct/i,
       manifest: /manifest (a |an )?(.*)/i,
       reshape: /reshape (.*) to (.*)/i,
       create: /create (.*)/i,
@@ -47,7 +48,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
 
   const handleExecute = useCallback(() => {
     if (!input.trim()) return;
-    if (coherence < 10) {
+    if (coherence < 10 && !input.match(/analyze|build|construct/i)) {
       toast({
         title: "Insufficient Coherence",
         description: "Need at least 10% coherence to execute commands",
@@ -57,29 +58,35 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
     }
 
     setIsExecuting(true);
+    onExecuteCommand(input);
+
     const parsed = parseCommand(input);
 
-    // Mock execution time
+    // Mock execution time for feedback
     setTimeout(() => {
-      if (parsed.success) {
-        toast({
-          title: "Command Executed",
-          description: parsed.type === 'connect' ? `Initiating uplink to: ${parsed.target}` : `Reality manifested: ${parsed.target}`,
-        });
-        onCoherenceChange(-10);
+      if (parsed.type !== 'analyze') {
+          if (parsed.success) {
+            toast({
+              title: "Command Executed",
+              description: parsed.type === 'connect' ? `Initiating uplink to: ${parsed.target}` : `Reality manifested: ${parsed.target}`,
+            });
+          } else {
+            toast({
+              title: "Command Failed",
+              description: "Quantum fluctuation interrupted manifestation",
+              variant: "destructive",
+            });
+            onCoherenceChange(5); // Refund some coherence on failure
+          }
       } else {
-        toast({
-          title: "Command Failed",
-          description: "Quantum fluctuation interrupted manifestation",
-          variant: "destructive",
-        });
-        onCoherenceChange(-5);
+          toast({
+              title: "Analysis Protocol Initiated",
+              description: "Awaiting project file submission."
+          })
       }
       
-      onExecuteCommand(input);
       setInput('');
       setIsExecuting(false);
-      // Keep focus
       inputRef.current?.focus();
     }, 1500);
   }, [input, coherence, onCoherenceChange, onExecuteCommand, toast]);
@@ -108,12 +115,11 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
           Reality Command Interface
         </motion.h2>
 
-        {/* Command History */}
         <div className="mb-4 max-h-32 overflow-y-auto space-y-2">
           <AnimatePresence>
             {commandHistory.slice(-3).map((cmd, idx) => (
               <motion.div
-                key={cmd.timestamp + idx} // Unique key
+                key={cmd.timestamp + idx}
                 initial={{ opacity: 0, x: -20, height: 0 }}
                 animate={{ opacity: 1, x: 0, height: 'auto' }}
                 exit={{ opacity: 0, x: 20, height: 0 }}
@@ -129,7 +135,6 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
           </AnimatePresence>
         </div>
 
-        {/* Input Area */}
         <div className="relative">
           <div className="flex gap-3">
             <motion.div 
@@ -145,18 +150,13 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
                 onFocus={() => setFocus(true)}
                 onBlur={() => setFocus(false)}
                 onKeyPress={handleKeyPress}
-                placeholder="Enter reality command... (e.g., 'manifest a crystalline tower')"
+                placeholder="Enter reality command... (e.g., 'analyze project')"
                 className="w-full bg-[#1a1a3e] text-white font-mono text-sm p-4 pr-12 rounded-lg border border-[#00d9ff]/30 focus:border-[#00d9ff] focus:outline-none resize-none h-24 transition-colors"
                 style={{
                   textShadow: '0 0 5px rgba(0, 217, 255, 0.3)',
                 }}
                 disabled={isExecuting}
               />
-              
-              {/* Syntax highlighting overlay (simulated) */}
-              <div className="absolute top-4 left-4 pointer-events-none font-mono text-sm opacity-100 mix-blend-screen whitespace-pre-wrap">
-                 {/* This approach is tricky for textarea sync, simplified for effect: just colored keywords if needed or assume user types */}
-              </div>
               
               {isExecuting && (
                  <motion.div 
@@ -186,14 +186,12 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
               whileTap={input.trim() && !isExecuting ? { scale: 0.95 } : {}}
             >
               {isExecuting ? (
-                <>
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   >
                     <Send className="text-[#d4af37]" size={20} />
                   </motion.div>
-                </>
               ) : (
                 <>
                   <Send className="text-[#d4af37]" size={20} />
@@ -203,24 +201,21 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
             </motion.button>
           </div>
 
-          {/* Coherence cost indicator */}
           <div className="mt-2 flex items-center gap-2 text-xs font-mono text-gray-500">
-            <span>Coherence Cost: -10%</span>
+            <span>Coherence Cost: -10% (basic) | -15% (analyze)</span>
             {coherence < 10 && (
-              <span className="text-red-400 font-bold">(Insufficient)</span>
+              <span className="text-red-400 font-bold">(Insufficient for most commands)</span>
             )}
           </div>
         </div>
 
-        {/* Example Commands */}
         <div className="mt-4">
           <p className="text-xs text-gray-500 font-mono mb-2">Example Commands:</p>
           <div className="flex flex-wrap gap-2">
             {[
+                'analyze project',
                 'manifest a crystalline tower',
                 'reshape terrain to rolling hills',
-                'create ethereal garden',
-                'summon quantum particles',
             ].map((cmd, idx) => (
               <motion.button
                 key={idx}
@@ -237,46 +232,6 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
             ))}
           </div>
         </div>
-
-        {/* Execution visualization */}
-        <AnimatePresence>
-          {isExecuting && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-            >
-              <div className="bg-[#0a0e27] p-8 rounded-lg border border-[#00d9ff] shadow-2xl shadow-[#00d9ff]/50">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative w-32 h-32">
-                    {[...Array(20)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute w-2 h-2 bg-[#00d9ff] rounded-full"
-                        style={{
-                          left: '50%',
-                          top: '50%',
-                        }}
-                        animate={{
-                          x: Math.cos(i * 18 * Math.PI / 180) * 50,
-                          y: Math.sin(i * 18 * Math.PI / 180) * 50,
-                          opacity: [0, 1, 0],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          delay: i * 0.05,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[#00d9ff] font-mono text-sm animate-pulse">Manifesting Reality...</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </motion.div>
   );
