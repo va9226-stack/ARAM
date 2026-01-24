@@ -2,76 +2,23 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { VideoOff, Box, Circle, Triangle, Sparkles } from 'lucide-react';
+import { VideoOff, BotMessageSquare } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
-import PhysicalBuilder from '@/components/anitch/PhysicalBuilder';
-
-const springConfig = { type: "spring", stiffness: 300, damping: 30 };
-
-// Component to render the created objects
-const SceneObject = ({ object }) => {
-  const icons = {
-    cube: <Box className="w-full h-full" />,
-    sphere: <Circle className="w-full h-full" />,
-    pyramid: <Triangle className="w-full h-full" />,
-  };
-
-  return (
-    <motion.div
-      key={object.id}
-      initial={{ scale: 0, opacity: 0, rotate: -180 }}
-      animate={{ scale: 1, opacity: 1, rotate: 0 }}
-      exit={{ scale: 0, opacity: 0 }}
-      transition={springConfig}
-      drag
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.2}
-      className="absolute w-24 h-24 text-cyan-300 drop-shadow-[0_0_10px_rgba(0,217,255,0.7)]"
-      style={{
-        left: `${object.x}%`,
-        top: `${object.y}%`,
-        transform: 'translate(-50%, -50%)',
-      }}
-    >
-      {icons[object.type] || <Sparkles className="w-full h-full" />}
-    </motion.div>
-  );
-};
-
-const CoherenceBar = ({ value }) => (
-    <motion.div 
-        initial={{ opacity: 0, y: -100 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-6 left-1/2 -translate-x-1/2 w-80 z-40"
-    >
-        <div className="text-center mb-1">
-            <span className="font-mono text-sm text-[#00d9ff]" style={{textShadow: '0 0 5px rgba(0, 217, 255, 0.7)'}}>COHERENCE</span>
-        </div>
-        <div className="w-full bg-black/50 border border-cyan-500/30 rounded-full h-4 p-1">
-            <motion.div
-                className="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full"
-                initial={{ width: '0%' }}
-                animate={{ width: `${value}%` }}
-                transition={{ duration: 0.5 }}
-            />
-        </div>
-         <div className="text-center mt-1">
-            <span className="font-mono text-lg font-bold text-white">{value}%</span>
-        </div>
-    </motion.div>
-);
-
+import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { FileDropZone } from '@/components/anitch/FileDropZone';
+import { AnalysisPanel } from '@/components/anitch/AnalysisPanel';
+import { AppIcon } from '@/components/anitch/AppIcon';
 
 export default function Home() {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
-  const [coherence, setCoherence] = useState(100);
-  const [commandHistory, setCommandHistory] = useState<{command: string, timestamp: number}[]>([]);
-  const [sceneObjects, setSceneObjects] = useState<any[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [analysis, setAnalysis] = useState<AnalyzeProjectOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAppIcon, setShowAppIcon] = useState(false);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -93,47 +40,97 @@ export default function Home() {
     };
     getCameraPermission();
   }, [toast]);
-  
-  const handleCoherenceChange = useCallback((change: number) => {
-    setCoherence(prev => Math.max(0, Math.min(100, prev + change)));
-  }, []);
 
-  const handleExecuteCommand = useCallback((command: string) => {
-    setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
-  }, []);
+  const handleFileDrop = (acceptedFiles: File[]) => {
+    setFiles(acceptedFiles);
+    setAnalysis(null);
+    setShowAppIcon(false);
+  };
 
-  const handleCreateObject = useCallback(({ type, coherenceCost }) => {
-    if (coherence + coherenceCost < 0) {
+  const handleAnalyze = useCallback(async () => {
+    if (files.length === 0) {
       toast({
-        title: "Insufficient Coherence",
-        description: "Not enough coherence to manifest this object.",
-        variant: "destructive",
+        variant: 'destructive',
+        title: 'No Files',
+        description: 'Please drop some project files before analyzing.',
       });
       return;
     }
+    setIsLoading(true);
+    setShowAppIcon(false);
+
+    try {
+      const fileContents = await Promise.all(
+        files.map(file =>
+          new Promise<{ name: string; content: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ name: file.name, content: reader.result as string });
+            reader.onerror = reject;
+            reader.readAsText(file);
+          })
+        )
+      );
+
+      const result = await analyzeProject({ files: fileContents });
+      setAnalysis(result);
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Analysis Failed",
+        description: "The AI could not process the provided files. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [files, toast]);
+  
+  const handleDownloadScript = () => {
+    if (!analysis) return;
+
+    const scriptContent = [
+        '#!/bin/bash',
+        '# Generated by AR Build Environment',
+        'set -e', // Exit immediately if a command exits with a non-zero status.
+        ...analysis.buildCommands,
+        analysis.runCommand,
+    ].join('\n');
+
+    const blob = new Blob([scriptContent], { type: 'text/x-shellscript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'build.sh';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     
-    const newObject = {
-      id: Date.now(),
-      type,
-      x: 20 + Math.random() * 60, // Random position on screen
-      y: 20 + Math.random() * 60,
-    };
-    setSceneObjects(prev => [...prev, newObject]);
-    handleCoherenceChange(coherenceCost);
-
     toast({
-        title: "Object Manifested",
-        description: `${type} appeared in reality.`,
+        title: "Script Downloaded",
+        description: "Your build.sh script is ready. Run it in your terminal.",
     });
+  };
+  
+  const handleBuildComplete = () => {
+    setTimeout(() => {
+        setShowAppIcon(true);
+    }, 500);
+  }
 
-  }, [coherence, handleCoherenceChange, toast]);
+  const resetState = () => {
+    setFiles([]);
+    setAnalysis(null);
+    setIsLoading(false);
+    setShowAppIcon(false);
+  }
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-black font-mono">
       <video ref={videoRef} className="absolute top-0 left-0 w-full h-full object-cover z-0" autoPlay muted playsInline />
-      <div className="absolute top-0 left-0 w-full h-full bg-black/50 z-10" />
+      <div className="absolute top-0 left-0 w-full h-full bg-black/60 z-10" />
 
-      <main className="relative z-20 w-full h-screen">
+      <main className="relative z-20 w-full h-screen flex items-center justify-center">
         {hasCameraPermission === false && (
              <div className="w-full h-full flex items-center justify-center">
                 <Card className="max-w-md bg-destructive/50 backdrop-blur-lg border-destructive text-destructive-foreground">
@@ -146,27 +143,44 @@ export default function Home() {
         )}
 
         {hasCameraPermission && (
-            <>
-                <AnimatePresence>
-                    {sceneObjects.map(obj => (
-                        <SceneObject key={obj.id} object={obj} />
-                    ))}
-                </AnimatePresence>
-                
-                <CoherenceBar value={coherence} />
-
-                <AnimatePresence>
-                    {coherence >= 5 && <PhysicalBuilder onCreateObject={handleCreateObject} />}
-                </AnimatePresence>
-                
-                <CodeCommandInterface 
-                    onExecuteCommand={handleExecuteCommand}
-                    commandHistory={commandHistory}
-                    coherence={coherence}
-                    onCoherenceChange={handleCoherenceChange}
+            <AnimatePresence mode="wait">
+              {!analysis ? (
+                <FileDropZone 
+                  key="dropzone"
+                  onFilesDropped={handleFileDrop} 
+                  onAnalyze={handleAnalyze} 
+                  files={files}
+                  isLoading={isLoading} 
                 />
-            </>
+              ) : (
+                <AnalysisPanel 
+                  key="analysis"
+                  analysis={analysis}
+                  onBuildComplete={handleBuildComplete}
+                  onReset={resetState}
+                />
+              )}
+            </AnimatePresence>
         )}
+
+        <AnimatePresence>
+          {showAppIcon && analysis && (
+            <AppIcon 
+              projectName={analysis.projectName} 
+              onDrop={handleDownloadScript}
+            />
+          )}
+        </AnimatePresence>
+
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute bottom-6 left-6 flex items-center gap-2 text-sm text-white/50"
+        >
+          <BotMessageSquare size={16} />
+          <span>AR Build Environment v1.0</span>
+        </motion.div>
       </main>
     </div>
   );

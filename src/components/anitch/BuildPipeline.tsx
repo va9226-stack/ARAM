@@ -22,10 +22,11 @@ const STAGE_CONFIG: Record<Stage, { icon: React.ElementType, title: string }> = 
 };
 
 const getStageForCommand = (command: string): Stage => {
-    if (command.includes('venv') || command.includes('source')) return 'Setup';
-    if (command.includes('install')) return 'Dependencies';
-    if (command.includes('build') || command.includes('make') || command.includes('py2app')) return 'Build';
-    return 'Run'; // Default, though run command is separate
+    const lowerCmd = command.toLowerCase();
+    if (lowerCmd.includes('venv') || lowerCmd.includes('source') || lowerCmd.includes('virtualenv')) return 'Setup';
+    if (lowerCmd.includes('install')) return 'Dependencies';
+    if (lowerCmd.includes('build') || lowerCmd.includes('make') || lowerCmd.includes('py2app')) return 'Build';
+    return 'Run';
 }
 
 const PipelineStage = ({ title, icon: Icon, commands, status }: { title: string, icon: React.ElementType, commands: string[], status: Status }) => {
@@ -76,7 +77,7 @@ const PipelineStage = ({ title, icon: Icon, commands, status }: { title: string,
 };
 
 
-export const BuildPipeline = ({ commands, runCommand }: { commands: string[], runCommand: string }) => {
+export const BuildPipeline = ({ commands, runCommand, onBuildComplete }: { commands: string[], runCommand: string, onBuildComplete: () => void }) => {
     const [currentStageIndex, setCurrentStageIndex] = useState(-1);
 
     const pipelineStages = useMemo<{ stage: Stage; commands: string[] }[]>(() => {
@@ -87,6 +88,7 @@ export const BuildPipeline = ({ commands, runCommand }: { commands: string[], ru
             'Run': [],
         };
         
+        // Group build commands
         commands.forEach(cmd => {
             const stage = getStageForCommand(cmd);
             stageMap[stage].push(cmd);
@@ -107,9 +109,9 @@ export const BuildPipeline = ({ commands, runCommand }: { commands: string[], ru
     }, [commands, runCommand]);
 
     useEffect(() => {
-        setCurrentStageIndex(-1); // Reset on new commands
+        setCurrentStageIndex(-1);
         if (pipelineStages.length > 0) {
-            const timeout = setTimeout(() => setCurrentStageIndex(0), 500); // Small delay before starting
+            const timeout = setTimeout(() => setCurrentStageIndex(0), 500);
             return () => clearTimeout(timeout);
         }
     }, [pipelineStages]);
@@ -118,11 +120,13 @@ export const BuildPipeline = ({ commands, runCommand }: { commands: string[], ru
         if (currentStageIndex >= 0 && currentStageIndex < pipelineStages.length) {
             const timer = setTimeout(() => {
                 setCurrentStageIndex(currentStageIndex + 1);
-            }, 2500); // Simulate time for each stage
+            }, 2500);
 
             return () => clearTimeout(timer);
+        } else if (currentStageIndex === pipelineStages.length && pipelineStages.length > 0) {
+            onBuildComplete();
         }
-    }, [currentStageIndex, pipelineStages.length]);
+    }, [currentStageIndex, pipelineStages, onBuildComplete]);
 
     if (pipelineStages.length === 0) {
         return (

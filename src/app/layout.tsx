@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'ANITCH App Builder',
-  description: 'Visualize your Python app build process.',
+  title: 'AR Build Environment',
+  description: 'Build your applications in a holographic-style augmented reality interface.',
 };
 
 export default function RootLayout({
