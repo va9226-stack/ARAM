@@ -2,12 +2,15 @@
 "use client";
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Rocket } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export function AppIcon({ analysis, onIconClick }: { analysis: AnalyzeProjectOutput; onIconClick: () => void; }) {
   const { projectName, buildCommands, runCommand } = analysis;
+  const logo = PlaceHolderImages.find(img => img.id === 'vrawless-logo');
 
   const handleDownloadAndReset = () => {
     // The "wave transmission" - generating a downloadable build script.
@@ -59,8 +62,19 @@ export function AppIcon({ analysis, onIconClick }: { analysis: AnalyzeProjectOut
             whileTap={{ scale: 0.95 }}
             className="flex cursor-pointer flex-col items-center gap-4 p-8 rounded-2xl bg-card/50 border border-primary/30"
           >
-            <div className="flex h-32 w-32 items-center justify-center rounded-2xl border-2 border-primary bg-card shadow-lg shadow-primary/20">
-              <Rocket className="h-20 w-20 text-primary" />
+            <div className="flex h-32 w-32 items-center justify-center rounded-2xl border-2 border-primary bg-card shadow-lg shadow-primary/20 overflow-hidden">
+              {logo ? (
+                <Image
+                  src={logo.imageUrl}
+                  alt={logo.description}
+                  width={128}
+                  height={128}
+                  className="object-cover"
+                  data-ai-hint={logo.imageHint}
+                />
+              ) : (
+                <Rocket className="h-20 w-20 text-primary" />
+              )}
             </div>
             <div className="text-center">
                 <p className="text-xl font-bold text-foreground">{projectName}</p>
