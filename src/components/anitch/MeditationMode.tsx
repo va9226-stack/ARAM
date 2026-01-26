@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -34,9 +33,7 @@ const MeditationMode = ({ onCoherenceChange, coherence }) => {
 
   useEffect(() => {
     const coherenceInterval = setInterval(() => {
-      if (coherence < 100) {
-        onCoherenceChange(2); // Restore 2% coherence per second
-      }
+      onCoherenceChange(2); // The parent handles not going over 100
     }, 1000);
 
     const timeInterval = setInterval(() => {
@@ -52,7 +49,7 @@ const MeditationMode = ({ onCoherenceChange, coherence }) => {
       clearInterval(timeInterval);
       clearInterval(quoteInterval);
     };
-  }, [coherence, onCoherenceChange]);
+  }, [onCoherenceChange]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
