@@ -2,10 +2,9 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Rocket } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { type AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export function AppIcon({ analysis, onIconClick }: { analysis: AnalyzeProjectOutput; onIconClick: () => void; }) {
@@ -20,13 +19,13 @@ export function AppIcon({ analysis, onIconClick }: { analysis: AnalyzeProjectOut
       `# Project: ${projectName}`,
       '',
       'echo "--- PREPARING ENVIRONMENT ---"',
-      ...buildCommands.filter(cmd => cmd.toLowerCase().includes('venv') || cmd.toLowerCase().includes('source')),
+      ...buildCommands.filter((cmd: string) => cmd.toLowerCase().includes('venv') || cmd.toLowerCase().includes('source')),
       '',
       'echo "--- INSTALLING DEPENDENCIES ---"',
-      ...buildCommands.filter(cmd => cmd.toLowerCase().includes('install')),
+      ...buildCommands.filter((cmd: string) => cmd.toLowerCase().includes('install')),
       '',
       'echo "--- RUNNING BUILD ---"',
-      ...buildCommands.filter(cmd => !cmd.toLowerCase().includes('install') && !cmd.toLowerCase().includes('venv') && !cmd.toLowerCase().includes('source')),
+      ...buildCommands.filter((cmd: string) => !cmd.toLowerCase().includes('install') && !cmd.toLowerCase().includes('venv') && !cmd.toLowerCase().includes('source')),
       '',
       'echo "--- BUILD COMPLETE ---"',
       'echo "To run your application, execute the following command:"',
@@ -64,11 +63,9 @@ export function AppIcon({ analysis, onIconClick }: { analysis: AnalyzeProjectOut
           >
             <div className="flex h-32 w-32 items-center justify-center rounded-2xl border-2 border-primary bg-card shadow-lg shadow-primary/20 overflow-hidden">
               {logo ? (
-                <Image
+                <img
                   src={logo.imageUrl}
                   alt={logo.description}
-                  width={128}
-                  height={128}
                   className="object-cover"
                   data-ai-hint={logo.imageHint}
                 />

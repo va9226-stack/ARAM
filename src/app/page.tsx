@@ -9,9 +9,12 @@ import CodeCommandInterface from '@/components/anitch/CodeCommandInterface';
 import { HolographicFileDrop } from '@/components/anitch/HolographicFileDrop';
 import { AnalysisPanel } from '@/components/anitch/AnalysisPanel';
 import { AppIcon } from '@/components/anitch/AppIcon';
-import { analyzeProject, type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { GeminiResponse } from '@/components/anitch/GeminiResponse';
+import { analyzeProject } from '@/ai/flows/analyze-project-flow';
+import { chatWithGemini } from '@/ai/flows/gemini-chat-flow';
+import { type AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { useToast } from '@/hooks/use-toast';
-import { Loader } from 'lucide-react';
+import { Bot, Loader } from 'lucide-react';
 import MeditationMode from '@/components/anitch/MeditationMode';
 
 
@@ -20,7 +23,7 @@ type SceneObjectType = {
   type: 'cube' | 'sphere' | 'pyramid';
 };
 
-type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating';
+type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating' | 'thinking_gemini' | 'displaying_gemini';
 
 
 export default function Home() {
@@ -33,6 +36,7 @@ export default function Home() {
   const [commandHistory, setCommandHistory] = useState<{ command: string; timestamp: number }[]>([]);
 
   const [analysisResult, setAnalysisResult] = useState<AnalyzeProjectOutput | null>(null);
+  const [geminiResponse, setGeminiResponse] = useState<string | null>(null);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
   const handleCoherenceChange = useCallback((amount: number) => {
@@ -66,6 +70,34 @@ export default function Home() {
         });
         return;
     }
+
+    // Gemini command
+    const geminiMatch = lowerCmd.match(/^(?:gemini|ask)\s+(.+)/i);
+    if (geminiMatch) {
+      const prompt = geminiMatch[1];
+      if (coherence < 10) {
+        toast({ title: "Insufficient Coherence", description: "Need at least 10% coherence to consult Gemini.", variant: "destructive" });
+        return;
+      }
+      handleCoherenceChange(-10);
+      setAppState('thinking_gemini');
+      chatWithGemini(prompt).then(response => {
+        setGeminiResponse(response);
+        setAppState('displaying_gemini');
+        toast({ title: "Gemini Responded", description: "Holographic response panel materialized." });
+      }).catch(err => {
+        toast({
+            variant: 'destructive',
+            title: 'Gemini Interface Error',
+            description: 'The connection to the AI core was unstable. Coherence lost.',
+        });
+        console.error(err);
+        handleCoherenceChange(-15);
+        resetState();
+      });
+      return;
+    }
+
 
     // Manifest command
     const manifestMatch = lowerCmd.match(/manifest (a |an )?(cube|sphere|pyramid)/i);
@@ -152,6 +184,7 @@ export default function Home() {
   const resetState = () => {
     setAppState('idle');
     setAnalysisResult(null);
+    setGeminiResponse(null);
     setDroppedFiles([]);
   };
 
@@ -172,10 +205,20 @@ export default function Home() {
                     <p className="text-muted-foreground">Reading project architecture and dependencies.</p>
                 </motion.div>
              );
+        case 'thinking_gemini':
+            return (
+               <motion.div initial={{opacity: 0}} animate={{opacity: 1}} className="flex flex-col items-center gap-4 text-center">
+                   <Bot className="w-16 h-16 animate-pulse text-primary" />
+                   <h2 className="text-2xl font-bold holographic-text">Contacting Gemini...</h2>
+                   <p className="text-muted-foreground">The AI oracle is contemplating your query.</p>
+               </motion.div>
+            );
         case 'analysis_complete':
             return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
         case 'build_complete':
             return analysisResult ? <AppIcon analysis={analysisResult} onIconClick={resetState} /> : null;
+        case 'displaying_gemini':
+            return geminiResponse ? <GeminiResponse response={geminiResponse} onClose={resetState} /> : null;
         case 'meditating':
             return (
                 <div className="w-full h-full cursor-pointer" onClick={handleExitMeditation} title="Click anywhere to exit meditation">
@@ -185,7 +228,7 @@ export default function Home() {
         default:
             return null;
     }
-  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange, handleExitMeditation]);
+  }, [appState, analysisResult, geminiResponse, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange, handleExitMeditation]);
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
@@ -219,11 +262,12 @@ export default function Home() {
       </main>
       
       <AnimatePresence>
-        {appState === 'idle' && (
+        {(appState === 'idle' || appState === 'meditating') && (
             <CodeCommandInterface
                 onExecuteCommand={handleExecuteCommand}
                 commandHistory={commandHistory}
                 coherence={coherence}
+                disabled={appState === 'meditating'}
             />
         )}
       </AnimatePresence>

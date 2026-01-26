@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Cpu, Layers, ArrowLeft } from 'lucide-react';
-import { type AnalyzeProjectOutput } from '@/ai/flows/analyze-project-flow';
+import { type AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { BuildPipeline } from '@/components/anitch/BuildPipeline';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +83,7 @@ export const AnalysisPanel = ({ analysis, onBuildComplete, onReset }: { analysis
                  <motion.div variants={itemVariants}>
                     <h3 className="flex items-center gap-2 text-lg font-semibold mb-3"><Layers size={20} /> Key Dependencies</h3>
                     <div className="flex flex-wrap gap-2">
-                        {analysis.dependencies.length > 0 ? analysis.dependencies.map(dep => (
+                        {analysis.dependencies.length > 0 ? analysis.dependencies.map((dep: string) => (
                             <Badge key={dep} variant="secondary">{dep}</Badge>
                         )) : <p className="text-sm text-muted-foreground">No key dependencies identified.</p>}
                     </div>

@@ -5,17 +5,19 @@ import { Send, Clock } from 'lucide-react';
 
 const springConfig = { type: "spring", stiffness: 300, damping: 30 };
 
-const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) => {
+const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, disabled = false }) => {
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [focus, setFocus] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Small delay to ensure animation complete before focus
-    const timer = setTimeout(() => inputRef.current?.focus(), 300);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!disabled) {
+      // Small delay to ensure animation complete before focus
+      const timer = setTimeout(() => inputRef.current?.focus(), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [disabled]);
 
   const handleExecute = useCallback(() => {
     if (!input.trim() || isExecuting) return;
@@ -90,12 +92,12 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) =
                 onFocus={() => setFocus(true)}
                 onBlur={() => setFocus(false)}
                 onKeyPress={handleKeyPress}
-                placeholder="Enter reality command... (e.g., 'analyze project')"
+                placeholder="Enter reality command... (e.g., 'gemini what is reality?')"
                 className="w-full bg-[#1a1a3e] text-white font-mono text-sm p-4 pr-12 rounded-lg border border-[#00d9ff]/30 focus:border-[#00d9ff] focus:outline-none resize-none h-24 transition-colors"
                 style={{
                   textShadow: '0 0 5px rgba(0, 217, 255, 0.3)',
                 }}
-                disabled={isExecuting}
+                disabled={isExecuting || disabled}
               />
               
               {isExecuting && (
@@ -116,9 +118,9 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) =
 
             <motion.button
               onClick={handleExecute}
-              disabled={!input.trim() || isExecuting}
+              disabled={!input.trim() || isExecuting || disabled}
               className={`px-6 py-4 rounded-lg border transition-all flex items-center gap-2 ${
-                input.trim() && !isExecuting
+                input.trim() && !isExecuting && !disabled
                   ? 'bg-[#d4af37]/10 border-[#d4af37] hover:bg-[#d4af37]/20'
                   : 'bg-gray-800/50 border-gray-700 opacity-50 cursor-not-allowed'
               }`}
@@ -143,7 +145,10 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) =
 
           <div className="mt-2 flex items-center gap-2 text-xs font-mono text-gray-500">
             <span>Coherence: {coherence}%</span>
-            {coherence < 20 && (
+            {coherence < 10 && (
+              <span className="text-yellow-400 font-bold">(Gemini requires 10%)</span>
+            )}
+            {coherence < 20 && coherence >= 10 && (
               <span className="text-red-400 font-bold">(Manifestation requires 20%)</span>
             )}
           </div>
@@ -155,6 +160,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) =
             {[
                 'analyze project',
                 'manifest sphere',
+                'gemini what is the matrix?',
                 'meditate',
             ].map((cmd, idx) => (
               <motion.button
@@ -166,6 +172,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) =
                 className="px-3 py-1 bg-[#1a1a3e]/50 border border-[#00d9ff]/20 rounded-full text-xs font-mono text-[#00d9ff] hover:border-[#00d9ff] transition-all"
                 whileHover={{ scale: 1.05, backgroundColor: "rgba(0, 217, 255, 0.1)" }}
                 whileTap={{ scale: 0.95 }}
+                disabled={disabled}
               >
                 {cmd}
               </motion.button>
