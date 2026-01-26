@@ -17,7 +17,7 @@ import MeditationMode from '@/components/anitch/MeditationMode';
 
 type SceneObjectType = {
   id: string;
-  type: 'cube' | 'sphere' | 'pyramid' | 'app';
+  type: 'cube' | 'sphere' | 'pyramid';
 };
 
 type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating';
@@ -40,25 +40,68 @@ export default function Home() {
   }, []);
 
   const handleExecuteCommand = (command: string) => {
+    if (appState !== 'idle' && !/meditate|focus|restore/i.test(command)) return;
+
     setCommandHistory(prev => [...prev, { command, timestamp: Date.now() }]);
-    
-    if (/meditate|focus|restore/i.test(command)) {
+
+    const lowerCmd = command.toLowerCase();
+
+    // Meditate command
+    if (/meditate|focus|restore/i.test(lowerCmd)) {
       setAppState('meditating');
+      toast({
+          title: "Entering Meditation",
+          description: "Focusing energy to restore coherence."
+      });
       return;
     }
-
-    if (/analyze|build|construct/i.test(command)) {
-        if (appState !== 'idle') return;
-        handleCoherenceChange(-10);
+    
+    // Analyze command
+    if (/analyze|build|construct/i.test(lowerCmd)) {
+        handleCoherenceChange(-15);
         setAppState('awaiting_files');
-    } else {
-        handleCoherenceChange(-5);
+        toast({
+            title: "Analysis Protocol Initiated",
+            description: "Awaiting project file submission."
+        });
+        return;
     }
+
+    // Manifest command
+    const manifestMatch = lowerCmd.match(/manifest (a |an )?(cube|sphere|pyramid)/i);
+    if (manifestMatch) {
+        const type = manifestMatch[2] as 'cube' | 'sphere' | 'pyramid';
+        if (coherence < 20) {
+            toast({ title: "Insufficient Coherence", description: "Need at least 20% coherence to manifest objects.", variant: "destructive" });
+            return;
+        }
+        
+        const newObject: SceneObjectType = {
+            id: `obj-${Date.now()}-${Math.random()}`,
+            type,
+        };
+        setSceneObjects(prev => [...prev, newObject]);
+        handleCoherenceChange(-20);
+        toast({
+            title: "Manifestation Successful",
+            description: `A ${type} has been materialized in the scene.`,
+        });
+        return;
+    }
+    
+    // Unknown command
+    handleCoherenceChange(-5);
+    toast({
+        title: "Command Unrecognized",
+        description: "The reality matrix did not resolve the command. Coherence lost.",
+        variant: 'destructive',
+    });
   };
 
   const handleFilesDropped = useCallback((files: File[]) => {
     setDroppedFiles(files);
     setAppState('analyzing');
+    handleCoherenceChange(-5); // Small cost for file processing
 
     const readFiles = async () => {
         const fileContents = await Promise.all(
@@ -77,13 +120,15 @@ export default function Home() {
             setAnalysisResult(result);
             setAppState('analysis_complete');
             handleCoherenceChange(-20);
+            toast({ title: "Analysis Complete", description: "Build pipeline has been constructed." });
         }).catch(err => {
             toast({
                 variant: 'destructive',
                 title: 'Analysis Failed',
-                description: 'The AI core could not process the project files.',
+                description: 'The AI core could not process the project files. Coherence destabilized.',
             });
             console.error(err);
+            handleCoherenceChange(-25);
             resetState();
         });
     }).catch(err => {
@@ -95,13 +140,14 @@ export default function Home() {
         console.error(err);
         resetState();
     });
-  }, [toast]);
+  }, [toast, handleCoherenceChange]);
 
 
   const handleBuildComplete = useCallback(() => {
     setAppState('build_complete');
     handleCoherenceChange(-30);
-  }, []);
+    toast({ title: "Build Simulation Complete", description: "Application artifact has been manifested." });
+  }, [handleCoherenceChange, toast]);
 
   const resetState = () => {
     setAppState('idle');
@@ -111,6 +157,7 @@ export default function Home() {
 
   const handleExitMeditation = () => {
     setAppState('idle');
+    toast({ title: "Meditation Complete", description: "You feel refreshed and coherent." });
   };
   
   const CurrentView = useMemo(() => {
@@ -138,7 +185,7 @@ export default function Home() {
         default:
             return null;
     }
-  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange]);
+  }, [appState, analysisResult, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange, handleExitMeditation]);
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
@@ -177,7 +224,6 @@ export default function Home() {
                 onExecuteCommand={handleExecuteCommand}
                 commandHistory={commandHistory}
                 coherence={coherence}
-                onCoherenceChange={handleCoherenceChange}
             />
         )}
       </AnimatePresence>

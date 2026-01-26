@@ -2,12 +2,10 @@
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 const springConfig = { type: "spring", stiffness: 300, damping: 30 };
 
-const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onCoherenceChange }) => {
-  const { toast } = useToast();
+const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence }) => {
   const [input, setInput] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [focus, setFocus] = useState(false);
@@ -19,83 +17,19 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
     return () => clearTimeout(timer);
   }, []);
 
-  const parseCommand = (cmd) => {
-    const lowerCmd = cmd.toLowerCase();
-    
-    // Command patterns
-    const patterns = {
-      analyze: /analyze|build|construct/i,
-      meditate: /meditate|focus|restore/i,
-      manifest: /manifest (a |an )?(.*)/i,
-      reshape: /reshape (.*) to (.*)/i,
-      create: /create (.*)/i,
-      summon: /summon (.*)/i,
-      connect: /connect (.*)/i,
-    };
-
-    for (const [type, pattern] of Object.entries(patterns)) {
-      const match = cmd.match(pattern);
-      if (match) {
-        return {
-          type,
-          target: match[match.length - 1],
-          success: Math.random() > 0.3, // 70% success rate
-        };
-      }
-    }
-
-    return { type: 'unknown', success: false };
-  };
-
   const handleExecute = useCallback(() => {
-    if (!input.trim()) return;
-    if (coherence < 10 && !input.match(/analyze|build|construct|meditate|focus|restore/i)) {
-      toast({
-        title: "Insufficient Coherence",
-        description: "Need at least 10% coherence to execute commands",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!input.trim() || isExecuting) return;
 
     setIsExecuting(true);
     onExecuteCommand(input);
 
-    const parsed = parseCommand(input);
-
-    // Mock execution time for feedback
+    // Simulate execution time for visual feedback on the button
     setTimeout(() => {
-      if (parsed.type === 'analyze') {
-          toast({
-              title: "Analysis Protocol Initiated",
-              description: "Awaiting project file submission."
-          })
-      } else if (parsed.type === 'meditate') {
-          toast({
-              title: "Entering Meditation",
-              description: "Focusing energy to restore coherence."
-          });
-      } else {
-          if (parsed.success) {
-            toast({
-              title: "Command Executed",
-              description: parsed.type === 'connect' ? `Initiating uplink to: ${parsed.target}` : `Reality manifested: ${parsed.target}`,
-            });
-          } else {
-            toast({
-              title: "Command Failed",
-              description: "Quantum fluctuation interrupted manifestation",
-              variant: "destructive",
-            });
-            onCoherenceChange(5); // Refund some coherence on failure
-          }
-      }
-      
       setInput('');
       setIsExecuting(false);
       inputRef.current?.focus();
-    }, 1500);
-  }, [input, coherence, onCoherenceChange, onExecuteCommand, toast]);
+    }, 1000);
+  }, [input, isExecuting, onExecuteCommand]);
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -174,7 +108,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
                         className="h-[2px] bg-[#00d9ff] absolute bottom-0 left-0"
                         initial={{ width: 0 }}
                         animate={{ width: "100%" }}
-                        transition={{ duration: 1.5, ease: "linear" }}
+                        transition={{ duration: 1, ease: "linear" }}
                     />
                  </motion.div>
               )}
@@ -208,9 +142,9 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
           </div>
 
           <div className="mt-2 flex items-center gap-2 text-xs font-mono text-gray-500">
-            <span>Coherence Cost: -10% (basic) | -15% (analyze)</span>
-            {coherence < 10 && (
-              <span className="text-red-400 font-bold">(Insufficient for most commands)</span>
+            <span>Coherence: {coherence}%</span>
+            {coherence < 20 && (
+              <span className="text-red-400 font-bold">(Manifestation requires 20%)</span>
             )}
           </div>
         </div>
@@ -220,7 +154,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, onC
           <div className="flex flex-wrap gap-2">
             {[
                 'analyze project',
-                'manifest a crystalline tower',
+                'manifest sphere',
                 'meditate',
             ].map((cmd, idx) => (
               <motion.button
