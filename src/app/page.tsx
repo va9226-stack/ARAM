@@ -18,6 +18,7 @@ import { Bot, Loader } from 'lucide-react';
 import MeditationMode from '@/components/anitch/MeditationMode';
 import { BridgePanel } from '@/components/anitch/BridgePanel';
 import bridgeConfig from '@/lib/bridge-config.json';
+import { BridgeToggle } from '@/components/anitch/BridgeToggle';
 
 
 type SceneObjectType = {
@@ -44,6 +45,33 @@ export default function Home() {
   const handleCoherenceChange = useCallback((amount: number) => {
     setCoherence(prev => Math.max(0, Math.min(100, prev + amount)));
   }, []);
+
+  const resetState = () => {
+    setAppState('idle');
+    setAnalysisResult(null);
+    setGeminiResponse(null);
+    setDroppedFiles([]);
+  };
+
+  const handleBridgeToggle = useCallback(() => {
+    if (appState === 'bridge_connected') {
+        // Disconnect
+        resetState();
+        toast({ title: "Bridge Disconnected", description: "The secure connection has been terminated." });
+        return;
+    }
+
+    if (appState === 'idle' || appState === 'meditating') {
+        // Connect
+        if (coherence < 25) {
+            toast({ title: "Insufficient Coherence", description: "Need at least 25% coherence to establish a bridge.", variant: "destructive" });
+            return;
+        }
+        handleCoherenceChange(-25);
+        setAppState('bridge_connected');
+        toast({ title: "Bridge Protocol Initiated", description: "Establishing secure connection..." });
+    }
+  }, [appState, coherence, handleCoherenceChange, toast]);
 
   const handleExecuteCommand = (command: string) => {
     if (appState !== 'idle' && !/meditate|focus|restore/i.test(command)) return;
@@ -74,14 +102,8 @@ export default function Home() {
     }
 
     // Bridge command
-    if (/connect bridge/i.test(lowerCmd)) {
-      if (coherence < 25) {
-        toast({ title: "Insufficient Coherence", description: "Need at least 25% coherence to establish a bridge.", variant: "destructive" });
-        return;
-      }
-      handleCoherenceChange(-25);
-      setAppState('bridge_connected');
-      toast({ title: "Bridge Protocol Initiated", description: "Establishing secure connection..." });
+    if (/connect bridge|disconnect bridge/i.test(lowerCmd)) {
+      handleBridgeToggle();
       return;
     }
 
@@ -195,13 +217,6 @@ export default function Home() {
     toast({ title: "Build Simulation Complete", description: "Application artifact has been manifested." });
   }, [handleCoherenceChange, toast]);
 
-  const resetState = () => {
-    setAppState('idle');
-    setAnalysisResult(null);
-    setGeminiResponse(null);
-    setDroppedFiles([]);
-  };
-
   const handleExitMeditation = () => {
     setAppState('idle');
     toast({ title: "Meditation Complete", description: "You feel refreshed and coherent." });
@@ -254,6 +269,11 @@ export default function Home() {
       }}></div>
       
       <CoherenceMeter coherence={coherence} />
+      <BridgeToggle
+          isConnected={appState === 'bridge_connected'}
+          onToggle={handleBridgeToggle}
+          coherence={coherence}
+      />
       
       <main className="relative z-10 w-full h-screen flex items-center justify-center" onClick={(e) => {
         if ((e.target as HTMLElement).tagName === 'MAIN') {

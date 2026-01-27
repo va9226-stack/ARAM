@@ -161,8 +161,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, dis
                 'analyze project',
                 'manifest sphere',
                 'gemini what is the matrix?',
-                'meditate',
-                'connect bridge'
+                'meditate'
             ].map((cmd: string, idx: number) => (
               <motion.button
                 key={idx}
