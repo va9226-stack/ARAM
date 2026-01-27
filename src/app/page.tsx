@@ -16,8 +16,6 @@ import { type AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader } from 'lucide-react';
 import MeditationMode from '@/components/anitch/MeditationMode';
-import { BridgePanel } from '@/components/anitch/BridgePanel';
-import bridgeConfig from '@/lib/bridge-config.json';
 import { BridgeToggle } from '@/components/anitch/BridgeToggle';
 
 
@@ -26,12 +24,13 @@ type SceneObjectType = {
   type: 'cube' | 'sphere' | 'pyramid';
 };
 
-type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating' | 'thinking_gemini' | 'displaying_gemini' | 'bridge_connected';
+type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating' | 'thinking_gemini' | 'displaying_gemini';
 
 
 export default function Home() {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>('idle');
+  const [isBridgeConnected, setIsBridgeConnected] = useState(false);
 
   const [coherence, setCoherence] = useState(100);
   const [sceneObjects, setSceneObjects] = useState<SceneObjectType[]>([]);
@@ -51,12 +50,13 @@ export default function Home() {
     setAnalysisResult(null);
     setGeminiResponse(null);
     setDroppedFiles([]);
+    setIsBridgeConnected(false);
   };
 
   const handleBridgeToggle = useCallback(() => {
-    if (appState === 'bridge_connected') {
+    if (isBridgeConnected) {
         // Disconnect
-        resetState();
+        setIsBridgeConnected(false);
         toast({ title: "Bridge Disconnected", description: "The secure connection has been terminated." });
         return;
     }
@@ -68,10 +68,10 @@ export default function Home() {
             return;
         }
         handleCoherenceChange(-25);
-        setAppState('bridge_connected');
-        toast({ title: "Bridge Protocol Initiated", description: "Establishing secure connection..." });
+        setIsBridgeConnected(true);
+        toast({ title: "Bridge Connected", description: "Secure connection is now active." });
     }
-  }, [appState, coherence, handleCoherenceChange, toast]);
+  }, [isBridgeConnected, appState, coherence, handleCoherenceChange, toast]);
 
   const handleExecuteCommand = (command: string) => {
     if (appState !== 'idle' && !/meditate|focus|restore/i.test(command)) return;
@@ -246,8 +246,6 @@ export default function Home() {
             return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
         case 'build_complete':
             return analysisResult ? <AppIcon analysis={analysisResult} onIconClick={resetState} /> : null;
-        case 'bridge_connected':
-            return <BridgePanel config={bridgeConfig} onClose={resetState} />;
         case 'displaying_gemini':
             return geminiResponse ? <GeminiResponse response={geminiResponse} onClose={resetState} /> : null;
         case 'meditating':
@@ -270,7 +268,7 @@ export default function Home() {
       
       <CoherenceMeter coherence={coherence} />
       <BridgeToggle
-          isConnected={appState === 'bridge_connected'}
+          isConnected={isBridgeConnected}
           onToggle={handleBridgeToggle}
           coherence={coherence}
       />
