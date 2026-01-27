@@ -16,13 +16,13 @@ type BridgeConfig = {
 export const BridgePanel = ({ config, onClose }: { config: BridgeConfig, onClose: () => void }) => {
 
   const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, x: 100 },
     visible: {
       opacity: 1,
-      y: 0,
+      x: 0,
       transition: { staggerChildren: 0.1 },
     },
-    exit: { opacity: 0, y: -20 }
+    exit: { opacity: 0, x: 100 }
   };
 
   const itemVariants = {
@@ -36,7 +36,6 @@ export const BridgePanel = ({ config, onClose }: { config: BridgeConfig, onClose
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="w-full max-w-md"
     >
         <Card className="w-full bg-card/80 backdrop-blur-lg border-success/30 shadow-2xl shadow-success/20">
             <CardHeader>

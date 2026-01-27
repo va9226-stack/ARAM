@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useMemo } from 'react';
@@ -53,8 +52,6 @@ export default function Home() {
     setAnalysisResult(null);
     setGeminiResponse(null);
     setDroppedFiles([]);
-    setIsBridgeConnected(false);
-    setShowBridgePanel(false);
   };
 
   const handleBridgeToggle = useCallback(() => {
@@ -108,10 +105,21 @@ export default function Home() {
     }
 
     // Bridge command
-    if (/connect bridge|disconnect bridge/i.test(lowerCmd)) {
-      handleBridgeToggle();
+    if (/connect bridge/i.test(lowerCmd)) {
+      if (!isBridgeConnected) {
+        handleBridgeToggle();
+      } else {
+        setShowBridgePanel(true);
+      }
       return;
     }
+    if (/disconnect bridge/i.test(lowerCmd)) {
+        if(isBridgeConnected) {
+            handleBridgeToggle();
+        }
+        return;
+    }
+
 
     // Gemini command
     const geminiMatch = lowerCmd.match(/^(?:gemini|ask)\s+(.+)/i);
@@ -214,7 +222,7 @@ export default function Home() {
         console.error(err);
         resetState();
     });
-  }, [toast, handleCoherenceChange]);
+  }, [toast, handleCoherenceChange, resetState]);
 
 
   const handleBuildComplete = useCallback(() => {
@@ -263,7 +271,7 @@ export default function Home() {
         default:
             return null;
     }
-  }, [appState, analysisResult, geminiResponse, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange, handleExitMeditation]);
+  }, [appState, analysisResult, geminiResponse, handleFilesDropped, handleBuildComplete, coherence, handleCoherenceChange, handleExitMeditation, resetState]);
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0a0e27]">
@@ -278,6 +286,19 @@ export default function Home() {
           onToggle={handleBridgeToggle}
           coherence={coherence}
       />
+      
+      <AnimatePresence>
+        {showBridgePanel && (
+            <div className="absolute top-24 right-6 z-20 w-full max-w-md">
+                <BridgePanel 
+                    config={bridgeConfig} 
+                    onClose={() => {
+                        setShowBridgePanel(false);
+                    }}
+                />
+            </div>
+        )}
+      </AnimatePresence>
       
       <main className="relative z-10 w-full h-screen flex items-center justify-center" onClick={(e) => {
         if ((e.target as HTMLElement).tagName === 'MAIN') {
@@ -298,23 +319,6 @@ export default function Home() {
         
         <AnimatePresence mode="wait">
             {CurrentView}
-        </AnimatePresence>
-
-        <AnimatePresence>
-            {showBridgePanel && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                    <BridgePanel 
-                        config={bridgeConfig} 
-                        onClose={() => {
-                            if (isBridgeConnected) {
-                                setShowBridgePanel(false)
-                            } else {
-                                resetState();
-                            }
-                        }}
-                    />
-                </div>
-            )}
         </AnimatePresence>
       </main>
       
