@@ -16,6 +16,8 @@ import { type AnalyzeProjectOutput } from '@/ai/schemas/analyze-project';
 import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader } from 'lucide-react';
 import MeditationMode from '@/components/anitch/MeditationMode';
+import { BridgePanel } from '@/components/anitch/BridgePanel';
+import bridgeConfig from '@/lib/bridge-config.json';
 
 
 type SceneObjectType = {
@@ -23,7 +25,7 @@ type SceneObjectType = {
   type: 'cube' | 'sphere' | 'pyramid';
 };
 
-type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating' | 'thinking_gemini' | 'displaying_gemini';
+type AppState = 'idle' | 'awaiting_files' | 'analyzing' | 'analysis_complete' | 'build_complete' | 'meditating' | 'thinking_gemini' | 'displaying_gemini' | 'bridge_connected';
 
 
 export default function Home() {
@@ -69,6 +71,18 @@ export default function Home() {
             description: "Awaiting project file submission."
         });
         return;
+    }
+
+    // Bridge command
+    if (/connect bridge/i.test(lowerCmd)) {
+      if (coherence < 25) {
+        toast({ title: "Insufficient Coherence", description: "Need at least 25% coherence to establish a bridge.", variant: "destructive" });
+        return;
+      }
+      handleCoherenceChange(-25);
+      setAppState('bridge_connected');
+      toast({ title: "Bridge Protocol Initiated", description: "Establishing secure connection..." });
+      return;
     }
 
     // Gemini command
@@ -217,6 +231,8 @@ export default function Home() {
             return analysisResult ? <AnalysisPanel analysis={analysisResult} onBuildComplete={handleBuildComplete} onReset={resetState} /> : null;
         case 'build_complete':
             return analysisResult ? <AppIcon analysis={analysisResult} onIconClick={resetState} /> : null;
+        case 'bridge_connected':
+            return <BridgePanel config={bridgeConfig} onClose={resetState} />;
         case 'displaying_gemini':
             return geminiResponse ? <GeminiResponse response={geminiResponse} onClose={resetState} /> : null;
         case 'meditating':
