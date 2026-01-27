@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
-export const CoherenceMeter = ({ coherence }) => {
+export const CoherenceMeter = ({ coherence }: { coherence: number }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, y: -50 }}

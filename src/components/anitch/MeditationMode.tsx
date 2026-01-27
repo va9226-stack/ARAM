@@ -4,7 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
-const MeditationMode = ({ onCoherenceChange, coherence }) => {
+interface MeditationModeProps {
+  onCoherenceChange: (amount: number) => void;
+  coherence: number;
+}
+
+const MeditationMode = ({ onCoherenceChange, coherence }: MeditationModeProps) => {
   const [meditationTime, setMeditationTime] = useState(0);
   const [currentQuote, setCurrentQuote] = useState(0);
 
@@ -51,7 +56,7 @@ const MeditationMode = ({ onCoherenceChange, coherence }) => {
     };
   }, [onCoherenceChange]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;

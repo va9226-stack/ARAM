@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 export const HolographicFileDrop = ({ onFilesDropped, onCancel }: { onFilesDropped: (files: File[]) => void, onCancel: () => void }) => {
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
         onFilesDropped(acceptedFiles);
     }

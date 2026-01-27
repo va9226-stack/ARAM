@@ -14,7 +14,14 @@ const shapeComponents = {
   app: Rocket,
 };
 
-export const SceneObject = ({ id, type, onSelect, isSelected }) => {
+interface SceneObjectProps {
+  id: string;
+  type: keyof typeof shapeComponents;
+  onSelect: (id: string) => void;
+  isSelected: boolean;
+}
+
+export const SceneObject = ({ id, type, onSelect, isSelected }: SceneObjectProps) => {
   const Icon = shapeComponents[type] || Box;
 
   const isApp = type === 'app';

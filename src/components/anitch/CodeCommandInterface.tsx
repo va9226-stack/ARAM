@@ -162,7 +162,7 @@ const CodeCommandInterface = ({ onExecuteCommand, commandHistory, coherence, dis
                 'manifest sphere',
                 'gemini what is the matrix?',
                 'meditate',
-            ].map((cmd, idx) => (
+            ].map((cmd: string, idx: number) => (
               <motion.button
                 key={idx}
                 onClick={() => {

@@ -7,8 +7,15 @@ import { UploadCloud, FileText, Loader, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-export const FileDropZone = ({ onFilesDropped, onAnalyze, files, isLoading }) => {
-  const onDrop = useCallback((acceptedFiles) => {
+export interface FileDropZoneProps {
+  onFilesDropped: (acceptedFiles: File[]) => void;
+  onAnalyze: () => void;
+  files: File[];
+  isLoading: boolean;
+}
+
+export const FileDropZone = ({ onFilesDropped, onAnalyze, files, isLoading }: FileDropZoneProps) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     onFilesDropped(acceptedFiles);
   }, [onFilesDropped]);
 
