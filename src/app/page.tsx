@@ -17,6 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Bot, Loader } from 'lucide-react';
 import MeditationMode from '@/components/anitch/MeditationMode';
 import { BridgeToggle } from '@/components/anitch/BridgeToggle';
+import { BridgePanel } from '@/components/anitch/BridgePanel';
+import bridgeConfig from '@/lib/bridge-config.json';
 
 
 type SceneObjectType = {
@@ -31,6 +33,7 @@ export default function Home() {
   const { toast } = useToast();
   const [appState, setAppState] = useState<AppState>('idle');
   const [isBridgeConnected, setIsBridgeConnected] = useState(false);
+  const [showBridgePanel, setShowBridgePanel] = useState(false);
 
   const [coherence, setCoherence] = useState(100);
   const [sceneObjects, setSceneObjects] = useState<SceneObjectType[]>([]);
@@ -51,12 +54,14 @@ export default function Home() {
     setGeminiResponse(null);
     setDroppedFiles([]);
     setIsBridgeConnected(false);
+    setShowBridgePanel(false);
   };
 
   const handleBridgeToggle = useCallback(() => {
     if (isBridgeConnected) {
         // Disconnect
         setIsBridgeConnected(false);
+        setShowBridgePanel(false);
         toast({ title: "Bridge Disconnected", description: "The secure connection has been terminated." });
         return;
     }
@@ -69,6 +74,7 @@ export default function Home() {
         }
         handleCoherenceChange(-25);
         setIsBridgeConnected(true);
+        setShowBridgePanel(true);
         toast({ title: "Bridge Connected", description: "Secure connection is now active." });
     }
   }, [isBridgeConnected, appState, coherence, handleCoherenceChange, toast]);
@@ -292,6 +298,23 @@ export default function Home() {
         
         <AnimatePresence mode="wait">
             {CurrentView}
+        </AnimatePresence>
+
+        <AnimatePresence>
+            {showBridgePanel && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <BridgePanel 
+                        config={bridgeConfig} 
+                        onClose={() => {
+                            if (isBridgeConnected) {
+                                setShowBridgePanel(false)
+                            } else {
+                                resetState();
+                            }
+                        }}
+                    />
+                </div>
+            )}
         </AnimatePresence>
       </main>
       

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -70,9 +71,9 @@ export const BridgePanel = ({ config, onClose }: { config: BridgeConfig, onClose
                         <span className="text-muted-foreground">Protocol:</span>
                         <span className="text-foreground">{config.protocol}</span>
                     </div>
-                     <div className="flex justify-between">
+                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Token:</span>
-                        <span className="text-foreground">************</span>
+                        <span className="text-foreground font-mono text-xs break-all">{config.handshakeToken}</span>
                     </div>
                 </motion.div>
 
